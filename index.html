@@ -46,11 +46,37 @@ button {
   border-radius: 10px;
 }
 
+.dashboard {
+  background: #2a2a38;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.big-progress {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.bar {
+  height: 12px;
+  background: #333;
+  border-radius: 5px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 12px;
+  background: #4caf50;
+  width: 0%;
+}
+
 .task {
   display: flex;
   justify-content: space-between;
   margin: 10px 0;
-  padding: 8px;
+  padding: 10px;
   background: #2a2a38;
   border-radius: 5px;
 }
@@ -58,19 +84,6 @@ button {
 .done {
   text-decoration: line-through;
   opacity: 0.6;
-}
-
-.bar {
-  height: 10px;
-  background: #333;
-  border-radius: 5px;
-  margin-top: 10px;
-}
-
-.fill {
-  height: 10px;
-  background: #4caf50;
-  border-radius: 5px;
 }
 </style>
 </head>
@@ -120,10 +133,9 @@ function generatePlan() {
     return;
   }
 
-  // overwrite kontrol
   if (tasks.length > 0) {
-    let confirmOverwrite = confirm("Bugün zaten plan var. Yenisi oluşturulsun mu?");
-    if (!confirmOverwrite) return;
+    let ok = confirm("Bugün plan var. Yenisi oluşturulsun mu?");
+    if (!ok) return;
   }
 
   tasks = [
@@ -157,21 +169,30 @@ function progress() {
   return Math.round((done / tasks.length) * 100);
 }
 
+function statusText(p) {
+  if (p === 0) return "Başlamak için hazır 🔥";
+  if (p < 50) return "Devam et 🚀";
+  if (p < 100) return "Son düzlüğe girdin ⚡";
+  return "Bugün tamamlandı 🎯";
+}
+
 function render() {
 
-  let html = `<h3>📚 Bugünün Görevleri</h3>`;
+  let p = progress();
+
+  let html = `
+    <div class="dashboard">
+      <div class="big-progress">%${p}</div>
+      <div>${statusText(p)}</div>
+      <div class="bar">
+        <div class="fill" style="width:${p}%"></div>
+      </div>
+    </div>
+  `;
 
   if (tasks.length === 0) {
-    html += `<p>Henüz plan oluşturulmadı.</p>`;
+    html += `<p>Henüz plan oluşturulmadı. Başlamak için yukarıdan plan oluştur.</p>`;
   } else {
-
-    html += `
-      <div class="bar">
-        <div class="fill" style="width:${progress()}%"></div>
-      </div>
-      <p>%${progress()} tamamlandı</p>
-    `;
-
     tasks.forEach((t,i) => {
       html += `
         <div class="task ${t.done ? "done":""}">
