@@ -71,7 +71,6 @@ button {
   height: 10px;
   background: #4caf50;
   border-radius: 5px;
-  width: 0%;
 }
 </style>
 </head>
@@ -98,7 +97,7 @@ button {
 
 <button onclick="generatePlan()">Plan Oluştur</button>
 
-<div class="card" id="result">Plan burada görünecek</div>
+<div class="card" id="result"></div>
 
 </div>
 
@@ -117,8 +116,14 @@ function generatePlan() {
   let subject = document.getElementById("subject").value;
 
   if (!hours || hours <= 0) {
-    document.getElementById("result").innerText = "Geçerli saat gir";
+    alert("Geçerli saat gir");
     return;
+  }
+
+  // overwrite kontrol
+  if (tasks.length > 0) {
+    let confirmOverwrite = confirm("Bugün zaten plan var. Yenisi oluşturulsun mu?");
+    if (!confirmOverwrite) return;
   }
 
   tasks = [
@@ -156,23 +161,28 @@ function render() {
 
   let html = `<h3>📚 Bugünün Görevleri</h3>`;
 
-  html += `
-    <div class="bar">
-      <div class="fill" style="width:${progress()}%"></div>
-    </div>
-    <p>%${progress()} tamamlandı</p>
-  `;
+  if (tasks.length === 0) {
+    html += `<p>Henüz plan oluşturulmadı.</p>`;
+  } else {
 
-  tasks.forEach((t,i) => {
     html += `
-      <div class="task ${t.done ? "done":""}">
-        <span>${t.text}</span>
-        <button onclick="toggleTask(${i})">
-          ${t.done ? "Undo" : "Done"}
-        </button>
+      <div class="bar">
+        <div class="fill" style="width:${progress()}%"></div>
       </div>
+      <p>%${progress()} tamamlandı</p>
     `;
-  });
+
+    tasks.forEach((t,i) => {
+      html += `
+        <div class="task ${t.done ? "done":""}">
+          <span>${t.text}</span>
+          <button onclick="toggleTask(${i})">
+            ${t.done ? "Undo" : "Done"}
+          </button>
+        </div>
+      `;
+    });
+  }
 
   document.getElementById("result").innerHTML = html;
 }
