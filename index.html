@@ -998,3 +998,314 @@
       }
     }
   };
+    // ---------- 4.3 SIRALAMA MODÜLÜ ----------
+    window.Modules.ranking = {
+      render() {
+        const container = document.getElementById('moduleContainer');
+        container.innerHTML = `
+          <div id="ranking-panel" class="window-panel" style="display:block;">
+            <div class="panel-header">
+              <span>🎯 Sıralama Modülü</span>
+              <button class="close-btn" data-module="ranking">✕</button>
+            </div>
+            
+            <div class="form-group">
+              <label>Öğrenci Sayısı:</label>
+              <div class="flex-row">
+                <input type="number" id="studentCount" value="5" min="1" style="flex:1;">
+                <button class="btn btn-primary" onclick="window.Modules.ranking.generateStudents()">
+                  Öğrenci Ekle
+                </button>
+              </div>
+            </div>
+            
+            <div id="studentInputs"></div>
+            
+            <button class="btn btn-success" onclick="window.Modules.ranking.calculateRank()">
+              🏆 Sırala
+            </button>
+            
+            <div id="rankResult" class="result-box">
+              <h3>Sıralama:</h3>
+              <div id="rankDisplay"></div>
+            </div>
+          </div>
+        `;
+        
+        this.generateStudents();
+      },
+      
+      generateStudents() {
+        const count = parseInt(document.getElementById('studentCount').value) || 5;
+        const container = document.getElementById('studentInputs');
+        container.innerHTML = '';
+        
+        for (let i = 0; i < count; i++) {
+          const div = document.createElement('div');
+          div.className = 'form-group';
+          div.innerHTML = `
+            <label>Öğrenci ${i+1}:</label>
+            <div class="flex-row">
+              <input type="text" class="student-name" placeholder="İsim girin..." style="flex:2;">
+              <input type="number" class="student-score" placeholder="Puan" style="flex:1;" min="0" max="100">
+            </div>
+          `;
+          container.appendChild(div);
+        }
+        
+        document.getElementById('rankResult').style.display = 'none';
+      },
+      
+      calculateRank() {
+        const names = document.querySelectorAll('.student-name');
+        const scores = document.querySelectorAll('.student-score');
+        const students = [];
+        
+        for (let i = 0; i < names.length; i++) {
+          const name = names[i].value.trim() || `Öğrenci ${i+1}`;
+          const score = parseInt(scores[i].value) || 0;
+          students.push({ name, score });
+        }
+        
+        students.sort((a, b) => b.score - a.score);
+        
+        const display = document.getElementById('rankDisplay');
+        let html = '<ol style="padding-left:20px;">';
+        students.forEach((s, index) => {
+          const medal = index === 0 ? ' 🏆' : index === 1 ? ' 🥈' : index === 2 ? ' 🥉' : '';
+          html += `<li style="padding:5px 0;">${s.name} - ${s.score} puan${medal}</li>`;
+        });
+        html += '</ol>';
+        
+        display.innerHTML = html;
+        document.getElementById('rankResult').style.display = 'block';
+        ToastManager.show('Sıralama oluşturuldu 🏆', 'success');
+      }
+    };
+
+    // ---------- 4.4 İSTATİSTİK MODÜLÜ ----------
+    window.Modules.statistics = {
+      render() {
+        const container = document.getElementById('moduleContainer');
+        container.innerHTML = `
+          <div id="statistics-panel" class="window-panel" style="display:block;">
+            <div class="panel-header">
+              <span>📊 İstatistikler</span>
+              <button class="close-btn" data-module="statistics">✕</button>
+            </div>
+            
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">📚</div>
+                <div class="stat-value" id="statTasks">0</div>
+                <div class="stat-label">Toplam Görev</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value" id="statCompleted">0</div>
+                <div class="stat-label">Tamamlanan</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-value" id="statRate">0%</div>
+                <div class="stat-label">Tamamlama Oranı</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">🧮</div>
+                <div class="stat-value" id="statNet">0</div>
+                <div class="stat-label">Son Net</div>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <h4>📈 Net Gelişimi</h4>
+              <canvas id="netChart"></canvas>
+            </div>
+          </div>
+        `;
+        
+        this.updateStats();
+        this.renderChart();
+      },
+      
+      updateStats() {
+        const tasks = StorageManager.get('tasks') || [];
+        const completed = tasks.filter(t => t.completed).length;
+        const rate = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
+        const history = StorageManager.get('netHistory') || [];
+        const lastNet = history.length > 0 ? history[history.length - 1].net : 0;
+        
+        document.getElementById('statTasks').textContent = tasks.length;
+        document.getElementById('statCompleted').textContent = completed;
+        document.getElementById('statRate').textContent = rate + '%';
+        document.getElementById('statNet').textContent = lastNet.toFixed(2);
+      },
+      
+      renderChart() {
+        const canvas = document.getElementById('netChart');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        const history = StorageManager.get('netHistory') || [];
+        const data = history.slice(-10);
+        
+        // Canvas'ı temizle
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (data.length === 0) {
+          ctx.fillStyle = '#888';
+          ctx.font = '16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Henüz net verisi yok', canvas.width/2, canvas.height/2);
+          return;
+        }
+        
+        const padding = 40;
+        const chartWidth = canvas.width - padding * 2;
+        const chartHeight = canvas.height - padding * 2;
+        const maxNet = Math.max(...data.map(d => d.net), 10);
+        const minNet = Math.min(...data.map(d => d.net), 0);
+        const range = maxNet - minNet || 1;
+        
+        // Eksen çizgileri
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padding, padding);
+        ctx.lineTo(padding, padding + chartHeight);
+        ctx.lineTo(padding + chartWidth, padding + chartHeight);
+        ctx.stroke();
+        
+        // Veri çizgisi
+        ctx.strokeStyle = '#4caf50';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        
+        data.forEach((item, index) => {
+          const x = padding + (index / (data.length - 1)) * chartWidth;
+          const y = padding + chartHeight - ((item.net - minNet) / range) * chartHeight;
+          
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+        
+        // Noktalar
+        data.forEach((item, index) => {
+          const x = padding + (index / (data.length - 1)) * chartWidth;
+          const y = padding + chartHeight - ((item.net - minNet) / range) * chartHeight;
+          
+          ctx.fillStyle = '#4caf50';
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Değerler
+          ctx.fillStyle = '#aaa';
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(item.net.toFixed(1), x, y - 12);
+          
+          // Tarihler
+          ctx.fillStyle = '#666';
+          ctx.font = '9px sans-serif';
+          ctx.fillText(item.date, x, padding + chartHeight + 18);
+        });
+      }
+    };
+
+    // ---------- 4.5 AYARLAR MODÜLÜ ----------
+    window.Modules.settings = {
+      render() {
+        const settings = StorageManager.get('settings');
+        const container = document.getElementById('moduleContainer');
+        
+        container.innerHTML = `
+          <div id="settings-panel" class="window-panel" style="display:block;">
+            <div class="panel-header">
+              <span>⚙️ Ayarlar</span>
+              <button class="close-btn" data-module="settings">✕</button>
+            </div>
+            
+            <div class="form-group">
+              <label>Tema Rengi:</label>
+              <select id="themeSelect" onchange="window.Modules.settings.changeTheme()">
+                <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>Koyu (Dark)</option>
+                <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>Açık (Light)</option>
+                <option value="blue" ${settings.theme === 'blue' ? 'selected' : ''}>Mavi</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>Yazı Boyutu:</label>
+              <div class="flex-row">
+                <input type="range" id="fontSize" min="12" max="24" value="${settings.fontSize}" 
+                       onchange="window.Modules.settings.changeFontSize()">
+                <span id="sizeDisplay">${settings.fontSize}px</span>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <button class="btn btn-warning" onclick="window.Modules.settings.resetSettings()">
+                🔄 Varsayılan Ayarlar
+              </button>
+              <button class="btn btn-danger" onclick="window.Modules.settings.clearData()">
+                🗑️ Tüm Verileri Temizle
+              </button>
+            </div>
+          </div>
+        `;
+      },
+      
+      changeTheme() {
+        const theme = document.getElementById('themeSelect').value;
+        UIController.applyTheme(theme);
+        StorageManager.update('settings', s => ({ ...s, theme }));
+        ToastManager.show('Tema değiştirildi 🎨', 'info');
+      },
+      
+      changeFontSize() {
+        const size = document.getElementById('fontSize').value;
+        document.getElementById('sizeDisplay').textContent = size + 'px';
+        document.documentElement.style.fontSize = size + 'px';
+        StorageManager.update('settings', s => ({ ...s, fontSize: size }));
+      },
+      
+      resetSettings() {
+        if (confirm('Ayarları varsayılana döndürmek istediğinize emin misiniz?')) {
+          document.getElementById('themeSelect').value = 'dark';
+          document.getElementById('fontSize').value = '16';
+          document.getElementById('sizeDisplay').textContent = '16px';
+          UIController.applyTheme('dark');
+          document.documentElement.style.fontSize = '16px';
+          StorageManager.set('settings', { theme: 'dark', fontSize: '16' });
+          ToastManager.show('Ayarlar varsayılana döndürüldü 🔄', 'success');
+        }
+      },
+      
+      clearData() {
+        if (confirm('Tüm veriler silinecek! Devam etmek istediğinize emin misiniz?')) {
+          if (confirm('Bu işlem geri alınamaz! Emin misiniz?')) {
+            Object.keys(StorageManager.defaults).forEach(key => {
+              localStorage.removeItem(StorageManager.prefix + key);
+            });
+            ToastManager.show('Tüm veriler temizlendi 🗑️', 'error');
+            location.reload();
+          }
+        }
+      }
+    };
+
+    // ============================================
+    // 5. UYGULAMA BAŞLATMA
+    // ============================================
+    document.addEventListener('DOMContentLoaded', () => {
+      UIController.init();
+      console.log('🏛️ ArchDevLab v7.0 Modular başlatıldı!');
+    });
+  </script>
+</body>
+</html>
