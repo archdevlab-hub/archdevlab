@@ -1,496 +1,224 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ArchDevLab - v6 Core Framework</title>
-  <meta name="description" content="ArchDevLab; dinamik pencere yönetimi, reaktif state kontrolü ve tam ölçeklenebilir altyapıya sahip v6 mimarisi.">
-  <meta name="author" content="Mustafa (The Architect)">
+/**
+ * ARCHITECT CORE ENGINE - v6.3 
+ * "The Fiber Architect" - Smart State Diffing & Component Scheduler
+ */
 
-  <style>
-    :root {
-      --bg-main: #0f0f14;
-      --bg-card: #1c1c26;
-      --bg-input: #13131f;
-      --bg-accent: #2a2a38;
-      --color-success: #4caf50;
-      --color-info: #2196f3;
-      --color-warning: #ff9800;
-      --color-danger: #e81123;
-      --font-family: 'Segoe UI', Arial, sans-serif;
-    }
+// 1. ADVANCED STATE MANAGER (With Safe ID Generation & Global Store)
+class Store {
+  constructor(initialState) {
+    this.state = initialState;
+    this.listeners = new Set(); // Memory leak riskini azaltmak için Set kullanıyoruz
+  }
 
-    body {
-      margin: 0;
-      font-family: var(--font-family);
-      background: var(--bg-main);
-      color: white;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
+  getState() {
+    return this.state;
+  }
 
-    header {
-      text-align: center;
-      padding: 25px;
-      background: var(--bg-card);
-      border-bottom: 2px solid var(--bg-accent);
-    }
+  setState(nextState) {
+    // Sığ karşılaştırma (Shallow comparison) - State gerçekten değişti mi?
+    const hasChanged = Object.keys(nextState).some(
+      key => this.state[key] !== nextState[key]
+    );
 
-    .main-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      max-width: 1000px;
-      margin: 40px auto;
-      padding: 0 20px;
-      width: 100%;
-      box-sizing: border-box;
-    }
+    if (!hasChanged) return; // Değişiklik yoksa render tetikleme!
 
-    /* TILES (DİNAMİK ÖLÇEKLENEBİLİR OLANLARDA DONUKLUK KALKTI) */
-    .tile {
-      background: var(--bg-card);
-      padding: 25px;
-      border-radius: 10px;
-      cursor: pointer;
-      border: 1px solid var(--bg-accent);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+    this.state = { ...this.state, ...nextState };
+    this.listeners.forEach(listener => listener(this.state));
+    localStorage.setItem('arch_fiber_state', JSON.stringify(this.state));
+  }
 
-    .tile:hover {
-      transform: translateY(-4px);
-      background: #222230;
-    }
+  // Unsubscribe (Abonelikten çıkma) fonksiyonu dönerek memory leak riskini sıfırlıyoruz
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+}
+
+// Güvenli ve çakışma ihtimali olmayan ID üretici (Date.now() açığını kapatır)
+const generateUniqueId = (() => {
+  let count = 0;
+  return (prefix = 'task') => {
+    count++;
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${count}`;
+  };
+})();
+
+const savedState = localStorage.getItem('arch_fiber_state');
+const AppStore = new Store(savedState ? JSON.parse(savedState) : {
+  hours: 0,
+  subject: "",
+  tasks: []
+});
+
+// 2. DETACHED LOGIC ENGINE & NARRATIVE LAYER (Pure Functions Only)
+const EducationEngine = {
+  generateTasks: function (hours, subject) {
+    const p1 = Math.floor(hours * 0.3);
+    const p2 = Math.floor(hours * 0.5);
+    const p3 = hours - (p1 + p2);
+
+    return [
+      { id: generateUniqueId('t1'), type: "📖 Temel Kurulum", text: `${subject} Konu Çalışması`, duration: p1, done: false },
+      { id: generateUniqueId('t2'), type: "🧠 Aktif Öğrenme", text: `Nitelikli Soru Çözümü`, duration: p2, done: false },
+      { id: generateUniqueId('t3'), type: "🔁 Kalıcı Öğrenme", text: `Hata Analizi & Geri Besleme`, duration: p3, done: false }
+    ];
+  },
+
+  calculateProgress: function (tasks) {
+    if (!tasks || tasks.length === 0) return 0;
+    const doneCount = tasks.filter(t => t.done).length;
+    return Math.round((doneCount / tasks.length) * 100);
+  }
+};
+
+const NarrativeManager = {
+  getStrategyText: function (progress) {
+    if (progress === 0) return "Döngüyü başlat 🔥 İlk adımı atmak korteksi tetikler.";
+    if (progress > 0 && progress < 50) return "Süreç aktif 🚀 Derin odaklanmayı bozma, harika gidiyorsun.";
+    if (progress >= 50 && progress < 100) return "Kritik eşik ⚡ Hatalarından öğrenme aşamasına geçiş yap.";
+    return "Mükemmel yürütme 🎯 Bugünün nöral adaptasyon döngüsü başarıyla kapannedi!";
+  }
+};
+
+// 3. SMART DIFFING COMPONENT SYSTEM (Gerçek Akıllı DOM Güncelleyici)
+const TaskComponent = {
+  // String template yerine DOM düğümü (Node) üretiyoruz ki üzerinde diff yapabilelim
+  createNode: function (task) {
+    const template = document.createElement('div');
+    template.className = `task-card ${task.done ? 'task-status-done' : 'task-status-active'}`;
+    template.setAttribute('data-id', task.id);
     
-    .tile.education { border-left: 5px solid var(--color-success); }
-    .tile.tech { border-left: 5px solid var(--color-info); }
-    .tile.health { border-left: 5px solid #e91e63; }
-    .tile.finance { border-left: 5px solid var(--color-warning); }
-
-    .tile:hover.education { border-color: var(--color-success); }
-    .tile:hover.tech { border-color: var(--color-info); }
-    .tile:hover.health { border-color: #e91e63; }
-    .tile:hover.finance { border-color: var(--color-warning); }
-
-    .tile-icon { font-size: 32px; margin-bottom: 15px; }
-    .tile-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
-    .tile-desc { font-size: 12px; opacity: 0.7; line-height: 1.4; }
-
-    /* DİNAMİK WINDOW PANEL (Ortak Sınıf) */
-    .window-panel {
-      display: none;
-      max-width: 600px;
-      margin: 30px auto;
-      background: var(--bg-card);
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      border: 1px solid var(--bg-accent);
-    }
-
-    /* Pencerelerin aktif renk temaları */
-    .window-panel.active-education { border-color: var(--color-success); }
-    .window-panel.active-tech { border-color: var(--color-info); }
-    .window-panel.active-health { border-color: #e91e63; }
-    .window-panel.active-finance { border-color: var(--color-warning); }
-
-    .window-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--bg-accent);
-      padding-bottom: 15px;
-      margin-bottom: 20px;
-    }
-
-    .close-btn {
-      background: var(--color-danger);
-      color: white;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .close-btn:hover { background: #f1707a; }
-
-    /* FORM ÖĞELERİ */
-    .form-group { margin-bottom: 15px; }
-    label { font-size: 13px; opacity: 0.8; display: block; margin-bottom: 5px; }
-    input, select, button {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid var(--bg-accent);
-      background: var(--bg-input);
-      color: white;
-      border-radius: 5px;
-      box-sizing: border-box;
-      font-family: var(--font-family);
-    }
-    button { background: var(--color-success); font-weight: bold; cursor: pointer; border: none; }
-    button:hover { opacity: 0.9; }
-
-    /* PROGRESS VE GÖREVLER */
-    .progress-container { background: var(--bg-accent); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
-    .bar { height: 10px; background: #333; border-radius: 5px; margin-top: 10px; overflow: hidden; }
-    .fill { height: 10px; background: var(--color-success); width: 0%; transition: width 0.4s ease; }
-
-    .task-list { margin-top: 20px; }
-    .task {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 10px 0;
-      padding: 12px;
-      background: var(--bg-accent);
-      border-radius: 5px;
-      border-left: 4px solid var(--color-info);
-    }
-    .task.done { border-left-color: var(--color-success); opacity: 0.6; }
-    .task.done .task-title { text-decoration: line-through; }
-    .task button { width: auto; padding: 6px 12px; background: var(--bg-input); font-size: 12px; }
-
-    /* TOAST */
-    .toast {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      padding: 12px 24px;
-      background: var(--bg-accent);
-      border-left: 4px solid var(--color-info);
-      border-radius: 4px;
-      display: none;
-      z-index: 1000;
-      font-size: 14px;
-    }
-
-    .error-msg { color: #ff6b6b; font-size: 12px; margin-top: 5px; display: none; }
-    footer { text-align: center; padding: 20px; font-size: 12px; opacity: 0.4; margin-top: auto; }
-  </style>
-</head>
-<body>
-
-  <header>
-    <h1>ARCHDEVLAB</h1>
-    <div style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Mimarın Dünyası // Framework v6 Architecture</div>
-  </header>
-
-  <!-- WINDOWS ANA GRID (DATA-TARGET İLE TETİKLENİYOR - SATIR İÇİ ONCLICK YOK) -->
-  <div class="main-grid" id="tilesGrid">
-    <div class="tile education" data-target="educationWindow">
-      <div class="tile-icon">📚</div>
-      <div class="tile-title">Eğitim Kutusu</div>
-      <div class="tile-desc">YKS yönlendirme sistemi ve akıllı zaman bölüştürücü.</div>
-    </div>
-    <div class="tile tech" data-target="techWindow">
-      <div class="tile-icon">💻</div>
-      <div class="tile-title">Teknoloji & Donanım</div>
-      <div class="tile-desc">F/P donanım mimarileri ve cihaz analiz modülü.</div>
-    </div>
-    <div class="tile health" data-target="healthWindow">
-      <div class="tile-icon">🧬</div>
-      <div class="tile-title">Sağlık & Biyoloji</div>
-      <div class="tile-desc">Nöroplastisite ve prefrontal korteks egzersizleri.</div>
-    </div>
-    <div class="tile finance" data-target="financeWindow">
-      <div class="tile-icon">📊</div>
-      <div class="tile-title">Finansal Analiz</div>
-      <div class="tile-desc">Stratejik bütçeleme ve mikro-yatırım simülasyonları.</div>
-    </div>
-  </div>
-
-  <!-- 1. EĞİTİM PENCERESİ -->
-  <div class="window-panel active-education" id="educationWindow">
-    <div class="window-header">
-      <span style="font-weight: bold; font-size: 16px;">📚 Eğitim Modülü</span>
-      <button class="close-btn" data-close="educationWindow">✕ Kapat</button>
-    </div>
-    <div class="progress-container"><div id="strategyBox">🧭 Yükleniyor...</div></div>
-    <div class="progress-container">
-      <label id="progressTitle">📊 İlerleme Durumu: %0</label>
-      <div class="bar"><div class="fill" id="progressBarFill"></div></div>
-    </div>
-    <div class="progress-container" style="background: var(--bg-card); border: 1px solid var(--bg-accent);">
-      <div class="form-group">
-        <label for="hours">Günlük Çalışma Saati</label>
-        <input type="number" id="hours" min="1" max="24" placeholder="Örn: 6" />
-        <div class="error-msg" id="hoursError">Lütfen 1 ile 24 arasında geçerli bir saat girin!</div>
+    template.innerHTML = `
+      <div class="task-content">
+        <span class="task-badge">${task.type}</span>
+        <h4 class="task-title">${task.text}</h4>
+        <small class="task-duration">⏱ Süre: ${task.duration} saat</small>
       </div>
-      <div class="form-group">
-        <label for="subject">Odaklanılacak Ders</label>
-        <select id="subject">
-          <option value="Matematik">Matematik</option>
-          <option value="Türkçe">Türkçe</option>
-          <option value="Fen">Fen</option>
-          <option value="Sosyal">Sosyal</option>
-        </select>
-      </div>
-      <button id="createPlanBtn">Stratejik Plan Oluştur</button>
-    </div>
-    <div class="task-list" id="taskListContainer"></div>
-  </div>
+      <button class="task-action-btn ${task.done ? 'btn-undo' : 'btn-complete'}" data-id="${task.id}">
+        ${task.done ? '🔄 Geri Al' : '✓ Tamamla'}
+      </button>
+    `;
+    return template;
+  },
 
-  <!-- 2. TEKNOLOJİ PENCERESİ (YENİ EKİLENDİ - SİSTEMİ KIRMAZ) -->
-  <div class="window-panel active-tech" id="techWindow">
-    <div class="window-header">
-      <span style="font-weight: bold; font-size: 16px;">💻 Teknoloji & Donanım</span>
-      <button class="close-btn" data-close="techWindow">✕ Kapat</button>
-    </div>
-    <p style="opacity: 0.7; font-size: 14px;">F/P Akıllı telefon işlemci mimarileri, GPU darboğaz analizleri ve Poco/Redmi serisi donanım karşılaştırma motoru yakında bu alanda derlenecektir.</p>
-  </div>
+  // SMART DIFF: Tüm kartı silip eklemek yerine sadece değişen sınıfları ve buton metnini günceller!
+  updateNode: function (existingNode, task) {
+    const isCurrentlyDone = existingNode.classList.contains('task-status-done');
+    
+    // Eğer state ile DOM eşleşiyorsa hiçbir şey yapma (Gereksiz DOM manipülasyonu engellenir)
+    if (isCurrentlyDone === task.done) return;
 
-  <!-- 3. SAĞLIK PENCERESİ -->
-  <div class="window-panel active-health" id="healthWindow">
-    <div class="window-header">
-      <span style="font-weight: bold; font-size: 16px;">🧬 Sağlık & Biyoloji</span>
-      <button class="close-btn" data-close="healthWindow">✕ Kapat</button>
-    </div>
-    <p style="opacity: 0.7; font-size: 14px;">Prefrontal Korteks (PFC) uyarıcı egzersizler, aktif nöroplastisite takibi ve odaklanma süreölçer mimarisi üzerinde çalışılıyor.</p>
-  </div>
+    // Sadece değişen sınıfları güncelle (Flicker/Göz kırpma sorununu çözer)
+    if (task.done) {
+      existingNode.classList.replace('task-status-active', 'task-status-done');
+    } else {
+      existingNode.classList.replace('task-status-done', 'task-status-active');
+    }
 
-  <!-- 4. FİNANS PENCERESİ -->
-  <div class="window-panel active-finance" id="financeWindow">
-    <div class="window-header">
-      <span style="font-weight: bold; font-size: 16px;">📊 Finansal Analiz</span>
-      <button class="close-btn" data-close="financeWindow">✕ Kapat</button>
-    </div>
-    <p style="opacity: 0.7; font-size: 14px;">Öğrenci mikro-bütçeleme algoritmaları, fon birikim takibi ve tasarruf çarpanı hesaplama araçları tasarlanıyor.</p>
-  </div>
+    const button = existingNode.querySelector('.task-action-btn');
+    if (button) {
+      button.className = `task-action-btn ${task.done ? 'btn-undo' : 'btn-complete'}`;
+      button.innerHTML = task.done ? '🔄 Geri Al' : '✓ Tamamla';
+    }
+  }
+};
 
-  <div class="toast" id="toastBox"></div>
+// 4. APPLICATION SCHEDULER & CONTROLLER
+const EducationController = {
+  init: function () {
+    this.cacheDOM();
+    this.bindEvents();
+    
+    // State'e abone ol ve gelen unsubscribe fonksiyonunu sakla (İleride memory cleanup için)
+    this.unsubscribeStore = AppStore.subscribe((state) => this.reconcile(state));
+    
+    this.reconcile(AppStore.getState());
+  },
 
-  <footer>
-    &copy; 2026 ArchDevLab. Framework Execution Engine v6.
-  </footer>
+  cacheDOM: function () {
+    this.taskListContainer = document.querySelector('#task-list');
+    this.progressBar = document.querySelector('#progress-bar-fill');
+    this.progressText = document.querySelector('#progress-title');
+    this.strategyText = document.querySelector('#strategy-text');
+    this.btnGenerate = document.querySelector('#btn-generate-plan');
+  },
 
-  <script>
-    /**
-     * ARCHDEVLAB CORE FRAMEWORK v6
-     * Handcrafted by Mustafa (The Architect) & AI Peer
-     */
-    const App = (function () {
+  bindEvents: function () {
+    this.btnGenerate.addEventListener('click', () => {
+      const hours = parseFloat(document.querySelector('#input-hours').value) || 0;
+      const subject = document.querySelector('#input-subject').value.trim();
       
-      const CONFIG = {
-        VERSION: "6.0.0",
-        STORAGE_PREFIX: "archdev_v6_"
-      };
+      if (hours > 0 && subject) {
+        const newTasks = EducationEngine.generateTasks(hours, subject);
+        AppStore.setState({ hours, subject, tasks: newTasks });
+      }
+    });
 
-      // ENCAPSULATED REACTION STATE
-      const State = {
-        tasks: [],
-        activeWindow: null,
-        currentDayKey: null,
-        
-        // Dynamic Date Tracker (Auto-update loop check)
-        updateDayKey: function () {
-          const d = new Date();
-          this.currentDayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        }
-      };
+    this.taskListContainer.addEventListener('click', (e) => {
+      const button = e.target.closest('.task-action-btn');
+      if (!button) return;
 
-      // DATA PRIVACY & STORAGE PROTECTION
-      const Storage = {
-        isAvailable: function () {
-          try {
-            localStorage.setItem("__t__", "1");
-            localStorage.removeItem("__t__");
-            return true;
-          } catch (e) { return false; }
-        },
-        save: function () {
-          if (!this.isAvailable()) return;
-          try {
-            const packageData = {
-              version: CONFIG.VERSION,
-              payload: State.tasks
-            };
-            localStorage.setItem(`${CONFIG.STORAGE_PREFIX}${State.currentDayKey}`, JSON.stringify(packageData));
-          } catch (err) { UI.showToast("Depolama alanı yazma hatası!", "danger"); }
-        },
-        load: function () {
-          if (!this.isAvailable()) return;
-          State.updateDayKey(); // Gün kontrolünü tazele
-          try {
-            const raw = localStorage.getItem(`${CONFIG.STORAGE_PREFIX}${State.currentDayKey}`);
-            if (!raw) {
-              State.tasks = []; // Yeni güne geçildiyse state'i temizle (Stale State Çözümü)
-              return;
-            }
-            const parsed = JSON.parse(raw);
-            State.tasks = (parsed && parsed.version === CONFIG.VERSION) ? parsed.payload : [];
-          } catch (e) {
-            State.tasks = [];
-          }
-        }
-      };
+      const taskId = button.dataset.id;
+      const currentTasks = AppStore.getState().tasks;
+      
+      const updatedTasks = currentTasks.map(task => 
+        task.id === taskId ? { ...task, done: !task.done } : task
+      );
 
-      // MATHEMATICAL ENGINE
-      const Engine = {
-        calculatePlan: function (hours, subject) {
-          const p1 = Math.floor(hours * 0.3);
-          const p2 = Math.floor(hours * 0.5);
-          const p3 = hours - (p1 + p2); // Precision Remainder Guard
+      AppStore.setState({ tasks: updatedTasks });
+    });
+  },
 
-          return [
-            { type: "📖 Temel Kurulum", text: `${subject} Konu Çalışması`, detail: `${p1} saat → Teorik altyapı kurulumu`, done: false },
-            { type: "🧠 Aktif Öğrenme", text: `Nitelikli Soru Çözümü`, detail: `${p2} saat → Pratik uygulama döngüsü`, done: false },
-            { type: "🔁 Kalıcı Öğrenme", text: `Hata Analizi & Geri Besleme`, detail: `${p3} saat → Prefrontal entegrasyon`, done: false }
-          ];
-        },
-        getProgress: function () {
-          if (State.tasks.length === 0) return 0;
-          return Math.round((State.tasks.filter(t => t.done).length / State.tasks.length) * 100);
-        }
-      };
+  /**
+   * RECONCILIATION ENGINE (Bizim Mini React Fiber Algoritmamız)
+   * DOM'u tamamen yıkmak yerine çocuk elementleri tarar, ekler, siler veya günceller.
+   */
+  reconcile: function (state) {
+    // 1. Statik Metin ve Progress Güncellemeleri
+    const progress = EducationEngine.calculateProgress(state.tasks);
+    if (this.progressBar) this.progressBar.style.width = `${progress}%`;
+    if (this.progressText) this.progressText.textContent = `📊 İlerleme Durumu: %${progress}`;
+    if (this.strategyText) this.strategyText.innerHTML = `🧭 <b>Günlük Strateji:</b> ${NarrativeManager.getStrategyText(progress)}`;
 
-      // TRUE DYNAMIC UI ROUTER (Kırılma Riski Sıfırlandı)
-      const UI = {
-        elements: {},
-        initDOM: function () {
-          this.elements = {
-            hoursInput: document.getElementById("hours"),
-            hoursError: document.getElementById("hoursError"),
-            subjectSelect: document.getElementById("subject"),
-            taskList: document.getElementById("taskListContainer"),
-            strategyBox: document.getElementById("strategyBox"),
-            progressBarFill: document.getElementById("progressBarFill"),
-            progressTitle: document.getElementById("progressTitle"),
-            toastBox: document.getElementById("toastBox"),
-            tilesGrid: document.getElementById("tilesGrid")
-          };
-        },
-        render: function () {
-          const progress = Engine.getProgress();
-          
-          this.elements.progressBarFill.style.width = `${progress}%`;
-          this.elements.progressTitle.textContent = `📊 İlerleme Durumu: %${progress}`;
-          
-          let strategyText = "Döngüyü başlat 🔥 İlk adımı atmak korteksi tetikler.";
-          if (progress > 0 && progress < 50) strategyText = "Süreç aktif 🚀 Derin odaklanmayı bozma.";
-          if (progress >= 50 && progress < 100) strategyText = "Kritik eşik ⚡ Son aşama kalıcı hafıza için en değerli bölümdür.";
-          if (progress === 100) strategyText = "Mükemmel yürütme 🎯 Günlük nöral adaptasyon tamamlandı.";
-          
-          this.elements.strategyBox.innerHTML = `🧭 <b>Günlük Strateji:</b> ${strategyText}`;
+    // 2. Liste Boşsa Doğrudan Temizle
+    if (state.tasks.length === 0) {
+      this.taskListContainer.innerHTML = `<p class="empty-state">Aktif plan bulunamadı. Yukarıdan yeni bir döngü başlatın.</p>`;
+      return;
+    }
 
-          if (State.tasks.length === 0) {
-            this.elements.taskList.innerHTML = `<p style="text-align:center; opacity:0.5; font-size:13px;">Aktif plan bulunamadı. Yukarıdan yeni bir döngü başlatın.</p>`;
-            return;
-          }
+    // Boş durum mesajını temizle
+    const emptyState = this.taskListContainer.querySelector('.empty-state');
+    if (emptyState) emptyState.remove();
 
-          this.elements.taskList.innerHTML = State.tasks.map((task, index) => `
-            <div class="task ${task.done ? 'done' : ''}">
-              <div>
-                <b style="color: var(--color-info);">${task.type}</b><br>
-                <span class="task-title">${task.text}</span><br>
-                <small style="opacity:0.6; font-size:11px;">${task.detail}</small>
-              </div>
-              <button class="toggle-task-btn" data-index="${index}">
-                ${task.done ? 'Geri Al' : 'Tamamla'}
-              </button>
-            </div>
-          `).join('');
-        },
-        showToast: function (msg, type = "info") {
-          const toast = this.elements.toastBox;
-          toast.textContent = msg;
-          toast.style.borderLeftColor = type === "danger" ? "var(--color-danger)" : "var(--color-info)";
-          toast.style.display = "block";
-          setTimeout(() => { toast.style.display = "none"; }, 2500);
-        },
-        // Çözülen Kusursuz Pencere Yönlendiricisi:
-        toggleWindow: function (targetWindowId, show) {
-          const targetWindow = document.getElementById(targetWindowId);
-          if (!targetWindow) return;
+    // 3. RECONCILE LOOP: State listesi ile mevcut DOM listesini eşleştirme (Diffing algoritması)
+    const existingNodes = Array.from(this.taskListContainer.children);
+    
+    state.tasks.forEach((task) => {
+      const matchedNode = existingNodes.find(node => node.getAttribute('data-id') === task.id);
 
-          if (show) {
-            this.elements.tilesGrid.style.display = "none";
-            targetWindow.style.display = "block";
-            State.activeWindow = targetWindowId;
-          } else {
-            targetWindow.style.display = "none";
-            this.elements.tilesGrid.style.display = "grid";
-            State.activeWindow = null;
-          }
-        },
-        clearInput: function() {
-          this.elements.hoursInput.value = "";
-          this.elements.hoursError.style.display = "none";
-          this.elements.hoursInput.style.borderColor = "var(--color-accent)";
-        }
-      };
+      if (matchedNode) {
+        // Element zaten var -> Sadece değişen yerlerini akıllıca güncelle (SMART DIFF)
+        TaskComponent.updateNode(matchedNode, task);
+      } else {
+        // Element yok -> Yeni oluştur ve DOM'a ekle (Append)
+        const newNode = TaskComponent.createNode(task);
+        this.taskListContainer.appendChild(newNode);
+      }
+    });
 
-      // EVENT CONTROL MATRIX
-      const Events = {
-        setup: function () {
-          // Dinamik Pencere Açıcılar (Data Attributes Routing)
-          document.querySelectorAll("[data-target]").forEach(tile => {
-            tile.addEventListener("click", function() {
-              const target = this.getAttribute("data-target");
-              UI.toggleWindow(target, true);
-            });
-          });
+    // State'te artık olmayan ama DOM'da kalan eski elementleri temizle (Garbage Collection)
+    existingNodes.forEach(node => {
+      const nodeId = node.getAttribute('data-id');
+      const stillExists = state.tasks.some(task => task.id === nodeId);
+      if (!stillExists && nodeId) {
+        node.remove();
+      }
+    });
+  }
+};
 
-          // Dinamik Pencere Kapatıcılar
-          document.querySelectorAll("[data-close]").forEach(btn => {
-            btn.addEventListener("click", function() {
-              const target = this.getAttribute("data-close");
-              UI.toggleWindow(target, false);
-            });
-          });
-
-          // Planlama Tetiği
-          document.getElementById("createPlanBtn").addEventListener("click", () => {
-            // Canlı Gün Kontrolü (Sayfa açık kaldıysa bug önleyici)
-            State.updateDayKey();
-
-            const hours = Number(UI.elements.hoursInput.value);
-            const subject = UI.elements.subjectSelect.value;
-
-            if (!hours || hours < 1 || hours > 24) {
-              UI.elements.hoursError.style.display = "block";
-              UI.elements.hoursInput.style.borderColor = "var(--color-danger)";
-              return;
-            }
-
-            if (State.tasks.length > 0 && !confirm("Mevcut aktif planın üzerine yazılacaktır. Onaylıyor musunuz?")) {
-              return;
-            }
-
-            State.tasks = Engine.calculatePlan(hours, subject);
-            Storage.save();
-            UI.render();
-            UI.clearInput(); // UX İyileştirmesi: Form temizleme eklendi
-            UI.showToast("Stratejik döngü hafızaya işlendi.", "info");
-          });
-
-          // Task delegation
-          UI.elements.taskList.addEventListener("click", (e) => {
-            if (e.target.classList.contains("toggle-task-btn")) {
-              const index = e.target.getAttribute("data-index");
-              State.tasks[index].done = !State.tasks[index].done;
-              Storage.save();
-              UI.render();
-              if(State.tasks[index].done) UI.showToast("Görev tamamlandı!", "info");
-            }
-          });
-        }
-      };
-
-      return {
-        boot: function () {
-          UI.initDOM();
-          Storage.load();
-          Events.setup();
-          UI.render();
-          console.log(`ArchDevLab Framework v${CONFIG.VERSION} Active.`);
-        }
-      };
-
-    })();
-
-    document.addEventListener("DOMContentLoaded", () => App.boot());
-  </script>
-</body>
-  </html>
-  
+// Sistemi güvenle başlat
+document.addEventListener('DOMContentLoaded', () => EducationController.init());
+      
