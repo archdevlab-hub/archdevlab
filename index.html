@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Eğitim Kutusu - YKS Rehber</title>
+<title>Eğitim Kutusu v3</title>
 
 <style>
 body {
@@ -39,7 +39,6 @@ button {
   cursor: pointer;
 }
 
-/* 🔥 EĞİTİM DASHBOARD */
 .education-card {
   background: #2a2a38;
   padding: 15px;
@@ -54,8 +53,14 @@ button {
 
 .subtitle {
   font-size: 13px;
-  opacity: 0.7;
+  opacity: 0.8;
   margin-bottom: 10px;
+}
+
+.status {
+  font-size: 14px;
+  margin-top: 8px;
+  opacity: 0.9;
 }
 
 .card {
@@ -77,6 +82,7 @@ button {
   height: 10px;
   background: #4caf50;
   width: 0%;
+  transition: 0.3s;
 }
 
 .task {
@@ -99,15 +105,15 @@ button {
 
 <header>
   <h1>Eğitim Kutusu</h1>
-  <p>YKS çalışma planı sistemi</p>
+  <p>YKS öğrenme rehberi</p>
 </header>
 
 <div class="container">
 
 <div class="education-card">
-  <div class="title">📚 Günlük Eğitim Planı</div>
+  <div class="title">📚 Günlük Öğrenme Planı</div>
   <div class="subtitle">
-    Bu sistem sana sadece görev değil, çalışma yönü verir.
+    “Sadece görev değil → öğrenme stratejisi”
   </div>
 
   <label>Günlük çalışma saati</label>
@@ -121,7 +127,7 @@ button {
     <option>Sosyal</option>
   </select>
 
-  <button onclick="generatePlan()">Plan Oluştur</button>
+  <button onclick="generatePlan()">Planı Oluştur</button>
 </div>
 
 <div class="card" id="result"></div>
@@ -135,7 +141,7 @@ let todayKey = getTodayKey();
 
 function getTodayKey() {
   let d = new Date();
-  return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+  return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + (d.getDate());
 }
 
 function generatePlan() {
@@ -148,9 +154,24 @@ function generatePlan() {
   }
 
   tasks = [
-    { type:"📖 Konu", text: `${subject} konu çalışması - ${Math.floor(hours*0.3)} saat`, done:false },
-    { type:"❓ Soru", text: `Soru çözümü - ${Math.floor(hours*0.5)} saat`, done:false },
-    { type:"🔁 Tekrar", text: `Tekrar + analiz - ${Math.floor(hours*0.2)} saat`, done:false }
+    {
+      type: "📖 Temel Öğrenme",
+      text: `${subject} konu çalışması`,
+      detail: `${Math.floor(hours*0.3)} saat → konu temeli kur`,
+      done: false
+    },
+    {
+      type: "🧠 Pekiştirme",
+      text: `Soru çözümü`,
+      detail: `${Math.floor(hours*0.5)} saat → bilgiyi aktif kullan`,
+      done: false
+    },
+    {
+      type: "🔁 Kalıcılık",
+      text: `Tekrar + analiz`,
+      detail: `${Math.floor(hours*0.2)} saat → unutmayı engelle`,
+      done: false
+    }
   ];
 
   save();
@@ -178,6 +199,13 @@ function progress() {
   return Math.round((done / tasks.length) * 100);
 }
 
+function statusText(p) {
+  if (p === 0) return "Başlamaya hazır 🔥";
+  if (p < 50) return "İyi gidiyorsun 🚀";
+  if (p < 100) return "Bitirmeye yakın ⚡";
+  return "Tamamlandı 🎯 mükemmel!";
+}
+
 function render() {
 
   let p = progress();
@@ -185,23 +213,29 @@ function render() {
   let html = `
     <div class="education-card">
       <div class="title">📊 Günlük Durum: %${p}</div>
-      <div class="subtitle">
-        ${p === 100 ? "Bugünkü plan tamamlandı 🎯" : "Plan üzerinde çalışıyorsun 🚀"}
-      </div>
+      <div class="subtitle">${statusText(p)}</div>
 
       <div class="bar">
         <div class="fill" style="width:${p}%"></div>
+      </div>
+
+      <div class="status">
+        ${p === 100 ? "Bugün görev tamamlandı 🎯" : "Devam et, öğreniyorsun"}
       </div>
     </div>
   `;
 
   if (tasks.length === 0) {
-    html += `<p>Henüz plan yok. Yukarıdan oluştur.</p>`;
+    html += `<p>Plan oluşturmak için yukarıdan başla.</p>`;
   } else {
     tasks.forEach((t,i) => {
       html += `
         <div class="task ${t.done ? "done":""}">
-          <span>${t.type} - ${t.text}</span>
+          <div>
+            <b>${t.type}</b><br>
+            ${t.text}<br>
+            <small>${t.detail}</small>
+          </div>
           <button onclick="toggleTask(${i})">
             ${t.done ? "Undo" : "Done"}
           </button>
