@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YKS Rehber Asistan</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f0f14;
+      color: white;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px;
+      background: #1c1c26;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 5px;
+    }
+
+    button {
+      background: #4caf50;
+      color: white;
+      cursor: pointer;
+    }
+
+    .card {
+      background: #1c1c26;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>YKS Rehber Asistan</h1>
+  <p>Günlük çalışma planını oluştur</p>
+</header>
+
+<div class="container">
+
+  <label>Günlük çalışma saati</label>
+  <input type="number" id="hours" placeholder="Örn: 5"/>
+
+  <label>Ders seç</label>
+  <select id="subject">
+    <option>Matematik</option>
+    <option>Türkçe</option>
+    <option>Fen</option>
+    <option>Sosyal</option>
+  </select>
+
+  <button onclick="generatePlan()">Plan Oluştur</button>
+
+  <div class="card" id="result">
+    Plan burada görünecek
+  </div>
+
+</div>
+
+<script>
+  function generatePlan() {
+    let hours = document.getElementById("hours").value;
+    let subject = document.getElementById("subject").value;
+
+    if (!hours) {
+      document.getElementById("result").innerText = "Lütfen saat gir";
+      return;
+    }
+
+    let plan = `Bugün ${hours} saat ${subject} çalışmalısın.`;
+
+    document.getElementById("result").innerText = plan;
+  }
+</script>
+
+</body>
+</html>
