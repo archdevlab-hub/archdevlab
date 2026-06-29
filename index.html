@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>YKS Rehber Asistan</title>
+<title>Eğitim Kutusu - YKS Rehber</title>
 
 <style>
 body {
@@ -39,6 +39,25 @@ button {
   cursor: pointer;
 }
 
+/* 🔥 EĞİTİM DASHBOARD */
+.education-card {
+  background: #2a2a38;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.title {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-bottom: 10px;
+}
+
 .card {
   background: #1c1c26;
   padding: 15px;
@@ -46,20 +65,8 @@ button {
   border-radius: 10px;
 }
 
-.dashboard {
-  background: #2a2a38;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-}
-
-.big-progress {
-  font-size: 22px;
-  margin-bottom: 10px;
-}
-
 .bar {
-  height: 12px;
+  height: 10px;
   background: #333;
   border-radius: 5px;
   margin-top: 10px;
@@ -67,7 +74,7 @@ button {
 }
 
 .fill {
-  height: 12px;
+  height: 10px;
   background: #4caf50;
   width: 0%;
 }
@@ -91,24 +98,31 @@ button {
 <body>
 
 <header>
-  <h1>YKS Rehber Asistan</h1>
-  <p>Günlük görev sistemi</p>
+  <h1>Eğitim Kutusu</h1>
+  <p>YKS çalışma planı sistemi</p>
 </header>
 
 <div class="container">
 
-<label>Günlük çalışma saati</label>
-<input type="number" id="hours" />
+<div class="education-card">
+  <div class="title">📚 Günlük Eğitim Planı</div>
+  <div class="subtitle">
+    Bu sistem sana sadece görev değil, çalışma yönü verir.
+  </div>
 
-<label>Ders seç</label>
-<select id="subject">
-  <option>Matematik</option>
-  <option>Türkçe</option>
-  <option>Fen</option>
-  <option>Sosyal</option>
-</select>
+  <label>Günlük çalışma saati</label>
+  <input type="number" id="hours" />
 
-<button onclick="generatePlan()">Plan Oluştur</button>
+  <label>Ders seç</label>
+  <select id="subject">
+    <option>Matematik</option>
+    <option>Türkçe</option>
+    <option>Fen</option>
+    <option>Sosyal</option>
+  </select>
+
+  <button onclick="generatePlan()">Plan Oluştur</button>
+</div>
 
 <div class="card" id="result"></div>
 
@@ -133,15 +147,10 @@ function generatePlan() {
     return;
   }
 
-  if (tasks.length > 0) {
-    let ok = confirm("Bugün plan var. Yenisi oluşturulsun mu?");
-    if (!ok) return;
-  }
-
   tasks = [
-    { text: `${subject} Konu - ${Math.floor(hours*0.3)} saat`, done:false },
-    { text: `Soru Çözümü - ${Math.floor(hours*0.5)} saat`, done:false },
-    { text: `Tekrar - ${Math.floor(hours*0.2)} saat`, done:false }
+    { type:"📖 Konu", text: `${subject} konu çalışması - ${Math.floor(hours*0.3)} saat`, done:false },
+    { type:"❓ Soru", text: `Soru çözümü - ${Math.floor(hours*0.5)} saat`, done:false },
+    { type:"🔁 Tekrar", text: `Tekrar + analiz - ${Math.floor(hours*0.2)} saat`, done:false }
   ];
 
   save();
@@ -169,21 +178,17 @@ function progress() {
   return Math.round((done / tasks.length) * 100);
 }
 
-function statusText(p) {
-  if (p === 0) return "Başlamak için hazır 🔥";
-  if (p < 50) return "Devam et 🚀";
-  if (p < 100) return "Son düzlüğe girdin ⚡";
-  return "Bugün tamamlandı 🎯";
-}
-
 function render() {
 
   let p = progress();
 
   let html = `
-    <div class="dashboard">
-      <div class="big-progress">%${p}</div>
-      <div>${statusText(p)}</div>
+    <div class="education-card">
+      <div class="title">📊 Günlük Durum: %${p}</div>
+      <div class="subtitle">
+        ${p === 100 ? "Bugünkü plan tamamlandı 🎯" : "Plan üzerinde çalışıyorsun 🚀"}
+      </div>
+
       <div class="bar">
         <div class="fill" style="width:${p}%"></div>
       </div>
@@ -191,12 +196,12 @@ function render() {
   `;
 
   if (tasks.length === 0) {
-    html += `<p>Henüz plan oluşturulmadı. Başlamak için yukarıdan plan oluştur.</p>`;
+    html += `<p>Henüz plan yok. Yukarıdan oluştur.</p>`;
   } else {
     tasks.forEach((t,i) => {
       html += `
         <div class="task ${t.done ? "done":""}">
-          <span>${t.text}</span>
+          <span>${t.type} - ${t.text}</span>
           <button onclick="toggleTask(${i})">
             ${t.done ? "Undo" : "Done"}
           </button>
