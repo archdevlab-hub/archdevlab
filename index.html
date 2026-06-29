@@ -503,3 +503,498 @@
   
   <!-- TOAST KONTEYNERİ -->
   <div id="toastContainer"></div>
+<script>
+  // ============================================
+  // 1. STORAGE MANAGER
+  // ============================================
+  const StorageManager = {
+    prefix: 'archdevlab_',
+    defaults: {
+      tasks: [],
+      netHistory: [],
+      settings: { theme: 'dark', fontSize: '16' }
+    },
+    
+    get(key) {
+      try {
+        const data = localStorage.getItem(this.prefix + key);
+        return data ? JSON.parse(data) : this.defaults[key];
+      } catch {
+        return this.defaults[key];
+      }
+    },
+    
+    set(key, value) {
+      try {
+        localStorage.setItem(this.prefix + key, JSON.stringify(value));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    
+    update(key, updater) {
+      const current = this.get(key);
+      const updated = updater(current);
+      return this.set(key, updated);
+    }
+  };
+
+  // ============================================
+  // 2. TOAST MANAGER
+  // ============================================
+  const ToastManager = {
+    container: null,
+    maxToasts: 5,
+    
+    init() {
+      this.container = document.getElementById('toastContainer');
+    },
+    
+    show(message, type = 'info', duration = 3000) {
+      const id = Date.now() + Math.random();
+      const div = document.createElement('div');
+      div.className = `toast toast-${type}`;
+      div.id = `toast-${id}`;
+      
+      const icons = { success: '✅', error: '❌', warning: '⚠️', info: '💡' };
+      div.innerHTML = `
+        <span>${icons[type] || '💡'}</span>
+        <span style="flex:1;">${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+      `;
+      
+      this.container.appendChild(div);
+      
+      setTimeout(() => {
+        if (div.parentElement) {
+          div.style.animation = 'slideOut 0.3s ease forwards';
+          setTimeout(() => div.remove(), 300);
+        }
+      }, duration);
+      
+      // Limit toasts
+      while (this.container.children.length > this.maxToasts) {
+        this.container.firstChild.remove();
+      }
+    }
+  };
+
+  // ============================================
+  // 3. UI CONTROLLER
+  // ============================================
+  const UIController = {
+    activePanels: [],
+    currentModule: null,
+    
+    init() {
+      // Menü tile'ları
+      document.querySelectorAll('.tile[data-module]').forEach(t => {
+        t.addEventListener('click', () => this.openModule(t.dataset.module));
+      });
+      
+      // Kapatma butonları (delegation ile)
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('close-btn')) {
+          this.closeModule(e.target.dataset.module);
+        }
+      });
+      
+      // Ayarları yükle
+      this.loadSettings();
+      ToastManager.init();
+      
+      // Header'ı güncelle
+      this.updateHeader();
+    },
+    
+    openModule(moduleName) {
+      // Önceki paneli kapat
+      if (this.currentModule && this.currentModule !== moduleName) {
+        this.closeModule(this.currentModule);
+      }
+      
+      this.currentModule = moduleName;
+      document.getElementById('tilesGrid').style.display = 'none';
+      
+      // Modülü render et
+      if (window.Modules && window.Modules[moduleName]) {
+        window.Modules[moduleName].render();
+      }
+    },
+    
+    closeModule(moduleName) {
+      const panel = document.getElementById(`${moduleName}-panel`);
+      if (panel) {
+        panel.remove();
+      }
+      this.currentModule = null;
+      document.getElementById('tilesGrid').style.display = 'grid';
+      this.updateHeader();
+    },
+    
+    loadSettings() {
+      const settings = StorageManager.get('settings');
+      document.documentElement.style.fontSize = settings.fontSize + 'px';
+      this.applyTheme(settings.theme);
+    },
+    
+    applyTheme(theme) {
+      const root = document.documentElement;
+      if (theme === 'light') {
+        root.style.setProperty('--bg-main', '#f0f0f0');
+        root.style.setProperty('--bg-card', '#ffffff');
+        root.style.setProperty('--bg-input', '#e8e8e8');
+        root.style.setProperty('--bg-accent', '#d0d0d0');
+        root.style.setProperty('--color-text', '#000000');
+        root.style.setProperty('--border-color', '#cccccc');
+      } else if (theme === 'blue') {
+        root.style.setProperty('--bg-main', '#0a1628');
+        root.style.setProperty('--bg-card', '#1a2a4a');
+        root.style.setProperty('--bg-input', '#0f1f3a');
+        root.style.setProperty('--bg-accent', '#2a4a6a');
+        root.style.setProperty('--color-text', '#ffffff');
+        root.style.setProperty('--border-color', '#3a5a7a');
+      } else { // dark
+        root.style.setProperty('--bg-main', '#0f0f14');
+        root.style.setProperty('--bg-card', '#1c1c26');
+        root.style.setProperty('--bg-input', '#13131f');
+        root.style.setProperty('--bg-accent', '#2a2a38');
+        root.style.setProperty('--color-text', '#ffffff');
+        root.style.setProperty('--border-color', '#3a3a4a');
+      }
+      StorageManager.update('settings', s => ({ ...s, theme }));
+    },
+    
+    updateHeader() {
+      const tasks = StorageManager.get('tasks') || [];
+      const completed = tasks.filter(t => t.completed).length;
+      const rate = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;
+      
+      document.getElementById('headerTotal').textContent = tasks.length;
+      document.getElementById('headerCompleted').textContent = completed;
+      document.getElementById('headerRate').textContent = rate + '%';
+      
+      // Badge güncelle
+      const badge = document.getElementById('taskBadge');
+      const pending = tasks.filter(t => !t.completed).length;
+      badge.textContent = pending;
+      badge.style.display = pending > 0 ? 'inline-block' : 'none';
+    }
+  };
+
+  // ============================================
+  // 4. MODÜLLER
+  // ============================================
+  window.Modules = {};
+
+  // ---------- 4.1 EĞİTİM MODÜLÜ ----------
+  window.Modules.education = {
+    subjects: ['Tümü', 'Matematik', 'Türkçe', 'Fen', 'Sosyal'],
+    currentFilter: 'Tümü',
+    tasks: [],
+    
+    render() {
+      this.tasks = StorageManager.get('tasks') || [];
+      const container = document.getElementById('moduleContainer');
+      
+      container.innerHTML = `
+        <div id="education-panel" class="window-panel" style="display:block;">
+          <div class="panel-header">
+            <span>📚 Eğitim Modülü</span>
+            <button class="close-btn" data-module="education">✕</button>
+          </div>
+          
+          <div class="form-group">
+            <label>Ders Seç:</label>
+            <select id="subjectFilter" class="filter-select">
+              ${this.subjects.map(s => `<option value="${s}">${s}</option>`).join('')}
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Yeni Görev Ekle:</label>
+            <div class="flex-row">
+              <input type="text" id="taskInput" placeholder="Görev girin..." style="flex:1;">
+              <select id="taskSubject" style="flex:0.7;">
+                ${this.subjects.filter(s => s !== 'Tümü').map(s => `<option value="${s}">${s}</option>`).join('')}
+              </select>
+              <button class="btn btn-success" id="addTaskBtn">Ekle</button>
+            </div>
+          </div>
+          
+          <div class="task-stats">
+            <span>📊 Toplam: <strong id="totalTasks">0</strong></span>
+            <span>✅ Tamamlanan: <strong id="completedTasks">0</strong></span>
+            <span>📈 Tamamlama: <strong id="completionRate">0%</strong></span>
+          </div>
+          
+          <div id="taskList" class="task-list"></div>
+        </div>
+      `;
+      
+      this.renderTasks();
+      this.attachEvents();
+    },
+    
+    renderTasks() {
+      const filtered = this.tasks.filter(task => 
+        this.currentFilter === 'Tümü' || task.subject === this.currentFilter
+      );
+      
+      const list = document.getElementById('taskList');
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="empty-state">📭 Henüz görev yok</div>';
+      } else {
+        list.innerHTML = filtered.map(task => `
+          <div class="task-item ${task.completed ? 'completed' : ''}" data-id="${task.id}">
+            <div class="task-content">
+              <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                     onchange="window.Modules.education.toggleTask('${task.id}')">
+              <span class="task-text">${this.escapeHtml(task.text)}</span>
+              <span class="task-subject-badge">${task.subject}</span>
+              <span class="task-date">${task.date || ''}</span>
+            </div>
+            <button class="btn btn-danger btn-sm" 
+                    onclick="window.Modules.education.deleteTask('${task.id}')">🗑️</button>
+          </div>
+        `).join('');
+      }
+      
+      this.updateStats();
+      UIController.updateHeader();
+    },
+    
+    escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    },
+    
+    updateStats() {
+      const total = this.tasks.length;
+      const completed = this.tasks.filter(t => t.completed).length;
+      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+      
+      document.getElementById('totalTasks').textContent = total;
+      document.getElementById('completedTasks').textContent = completed;
+      document.getElementById('completionRate').textContent = rate + '%';
+    },
+    
+    attachEvents() {
+      document.getElementById('subjectFilter').addEventListener('change', (e) => {
+        this.currentFilter = e.target.value;
+        this.renderTasks();
+      });
+      
+      document.getElementById('addTaskBtn').addEventListener('click', () => {
+        this.addTask();
+      });
+      
+      document.getElementById('taskInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') this.addTask();
+      });
+    },
+    
+    addTask() {
+      const input = document.getElementById('taskInput');
+      const subject = document.getElementById('taskSubject').value;
+      const text = input.value.trim();
+      
+      if (!text) {
+        ToastManager.show('Lütfen bir görev girin!', 'warning');
+        return;
+      }
+      
+      const task = {
+        id: Date.now().toString(),
+        text,
+        subject,
+        completed: false,
+        date: new Date().toLocaleDateString('tr-TR')
+      };
+      
+      this.tasks.push(task);
+      StorageManager.set('tasks', this.tasks);
+      this.renderTasks();
+      input.value = '';
+      ToastManager.show(`"${text}" görevi eklendi ✅`, 'success');
+    },
+    
+    toggleTask(id) {
+      this.tasks = this.tasks.map(task => 
+        task.id === id ? { ...task, completed: !task.completed } : task
+      );
+      StorageManager.set('tasks', this.tasks);
+      this.renderTasks();
+      ToastManager.show('Görev güncellendi 🔄', 'info');
+    },
+    
+    deleteTask(id) {
+      const task = this.tasks.find(t => t.id === id);
+      if (task && confirm(`"${task.text}" görevini silmek istediğinize emin misiniz?`)) {
+        this.tasks = this.tasks.filter(t => t.id !== id);
+        StorageManager.set('tasks', this.tasks);
+        this.renderTasks();
+        ToastManager.show('Görev silindi 🗑️', 'error');
+      }
+    }
+  };
+
+  // ---------- 4.2 NET HESAPLAYICI ----------
+  window.Modules.net = {
+    examType: 'TYT',
+    subjects: {
+      TYT: ['Türkçe', 'Matematik', 'Fen', 'Sosyal'],
+      AYT: ['Matematik', 'Fizik', 'Kimya', 'Biyoloji', 'Edebiyat', 'Tarih', 'Coğrafya']
+    },
+    lastNet: null,
+    
+    render() {
+      const container = document.getElementById('moduleContainer');
+      container.innerHTML = `
+        <div id="net-panel" class="window-panel" style="display:block;">
+          <div class="panel-header">
+            <span>🧮 Net Hesaplayıcı</span>
+            <button class="close-btn" data-module="net">✕</button>
+          </div>
+          
+          <div class="form-group">
+            <label>Sınav Türü:</label>
+            <div class="btn-group">
+              <button class="btn ${this.examType === 'TYT' ? 'btn-primary' : ''}" 
+                      onclick="window.Modules.net.switchExam('TYT')">TYT</button>
+              <button class="btn ${this.examType === 'AYT' ? 'btn-primary' : ''}" 
+                      onclick="window.Modules.net.switchExam('AYT')">AYT</button>
+            </div>
+          </div>
+          
+          <div id="subjectInputs"></div>
+          
+          <div class="form-group">
+            <button class="btn btn-success" onclick="window.Modules.net.calculate()">
+              🧮 Hesapla
+            </button>
+            <button class="btn btn-warning" onclick="window.Modules.net.saveNet()">
+              💾 Kaydet
+            </button>
+          </div>
+          
+          <div id="netResult" class="result-box">
+            <h3>Sonuç:</h3>
+            <div id="netDisplay"></div>
+          </div>
+          
+          <div class="history-box">
+            <h4>📊 Son Netler</h4>
+            <div id="netHistoryList"></div>
+          </div>
+        </div>
+      `;
+      
+      this.renderSubjects();
+      this.renderHistory();
+    },
+    
+    switchExam(type) {
+      this.examType = type;
+      this.render();
+      ToastManager.show(`${type} moduna geçildi`, 'info');
+    },
+    
+    renderSubjects() {
+      const container = document.getElementById('subjectInputs');
+      const subjects = this.subjects[this.examType];
+      
+      container.innerHTML = subjects.map(subject => `
+        <div class="form-group">
+          <label>${subject}:</label>
+          <div class="flex-row">
+            <input type="number" id="net_${subject}_correct" placeholder="Doğru" min="0" max="40" style="flex:1;">
+            <input type="number" id="net_${subject}_wrong" placeholder="Yanlış" min="0" max="40" style="flex:1;">
+            <input type="number" id="net_${subject}_empty" placeholder="Boş" min="0" max="40" style="flex:1;">
+          </div>
+        </div>
+      `).join('');
+    },
+    
+    calculate() {
+      const subjects = this.subjects[this.examType];
+      let totalCorrect = 0;
+      let totalWrong = 0;
+      let results = {};
+      
+      subjects.forEach(subject => {
+        const correct = parseInt(document.getElementById(`net_${subject}_correct`).value) || 0;
+        const wrong = parseInt(document.getElementById(`net_${subject}_wrong`).value) || 0;
+        const empty = parseInt(document.getElementById(`net_${subject}_empty`).value) || 0;
+        
+        const net = correct - (wrong / 4);
+        results[subject] = { correct, wrong, empty, net: net.toFixed(2) };
+        
+        totalCorrect += correct;
+        totalWrong += wrong;
+      });
+      
+      const totalNet = totalCorrect - (totalWrong / 4);
+      this.lastNet = totalNet;
+      
+      const display = document.getElementById('netDisplay');
+      display.innerHTML = `
+        <div class="net-summary">
+          <div class="net-total">
+            <strong>Toplam Net: ${totalNet.toFixed(2)}</strong>
+          </div>
+          <div class="net-details">
+            ${Object.entries(results).map(([subject, data]) => `
+              <div class="net-subject">
+                <span>${subject}:</span>
+                <span><strong>${data.net}</strong> net</span>
+                <span class="net-detail">(${data.correct}D, ${data.wrong}Y, ${data.empty}B)</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('netResult').style.display = 'block';
+      ToastManager.show('Net hesaplandı 📊', 'success');
+    },
+    
+    saveNet() {
+      if (this.lastNet === null || this.lastNet === undefined) {
+        ToastManager.show('Önce hesaplama yapın!', 'warning');
+        return;
+      }
+      
+      const history = StorageManager.get('netHistory') || [];
+      history.push({
+        date: new Date().toLocaleDateString('tr-TR'),
+        net: this.lastNet,
+        type: this.examType
+      });
+      
+      StorageManager.set('netHistory', history);
+      this.renderHistory();
+      ToastManager.show(`Net kaydedildi: ${this.lastNet.toFixed(2)} 💾`, 'success');
+    },
+    
+    renderHistory() {
+      const history = StorageManager.get('netHistory') || [];
+      const list = document.getElementById('netHistoryList');
+      
+      if (!list) return;
+      
+      if (history.length === 0) {
+        list.innerHTML = '<div class="empty-state">Henüz kayıtlı net yok</div>';
+      } else {
+        list.innerHTML = history.slice(-10).reverse().map(item => `
+          <div class="history-item">
+            <span>${item.date}</span>
+            <span class="history-net">${item.net.toFixed(2)} net</span>
+            <span class="history-type">${item.type}</span>
+          </div>
+        `).join('');
+      }
+    }
+  };
