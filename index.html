@@ -1,113 +1,185 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>YKS Rehber Asistan</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YKS Rehber Asistan</title>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f0f14;
-      color: white;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0f0f14;
+  color: white;
+}
 
-    header {
-      text-align: center;
-      padding: 20px;
-      background: #1c1c26;
-    }
+header {
+  text-align: center;
+  padding: 20px;
+  background: #1c1c26;
+}
 
-    .container {
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
-    }
+.container {
+  padding: 20px;
+  max-width: 600px;
+  margin: auto;
+}
 
-    input, select, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 5px;
-    }
+input, select, button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 5px;
+}
 
-    button {
-      background: #4caf50;
-      color: white;
-      cursor: pointer;
-    }
+button {
+  background: #4caf50;
+  color: white;
+  cursor: pointer;
+}
 
-    .card {
-      background: #1c1c26;
-      padding: 15px;
-      margin-top: 20px;
-      border-radius: 10px;
-      white-space: pre-line;
-    }
-  </style>
+.card {
+  background: #1c1c26;
+  padding: 15px;
+  margin-top: 20px;
+  border-radius: 10px;
+}
+
+.task {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+  padding: 8px;
+  background: #2a2a38;
+  border-radius: 5px;
+}
+
+.done {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.bar {
+  height: 10px;
+  background: #333;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
+.fill {
+  height: 10px;
+  background: #4caf50;
+  border-radius: 5px;
+  width: 0%;
+}
+</style>
 </head>
 
 <body>
 
 <header>
   <h1>YKS Rehber Asistan</h1>
-  <p>Günlük çalışma planını oluştur</p>
+  <p>Günlük görev sistemi</p>
 </header>
 
 <div class="container">
 
-  <label>Günlük çalışma saati</label>
-  <input type="number" id="hours" placeholder="Örn: 5"/>
+<label>Günlük çalışma saati</label>
+<input type="number" id="hours" />
 
-  <label>Ders seç</label>
-  <select id="subject">
-    <option>Matematik</option>
-    <option>Türkçe</option>
-    <option>Fen</option>
-    <option>Sosyal</option>
-  </select>
+<label>Ders seç</label>
+<select id="subject">
+  <option>Matematik</option>
+  <option>Türkçe</option>
+  <option>Fen</option>
+  <option>Sosyal</option>
+</select>
 
-  <button onclick="generatePlan()">Plan Oluştur</button>
+<button onclick="generatePlan()">Plan Oluştur</button>
 
-  <div class="card" id="result">
-    Plan burada görünecek
-  </div>
+<div class="card" id="result">Plan burada görünecek</div>
 
 </div>
 
 <script>
+
+let tasks = [];
+let todayKey = getTodayKey();
+
+function getTodayKey() {
+  let d = new Date();
+  return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+}
+
 function generatePlan() {
   let hours = Number(document.getElementById("hours").value);
   let subject = document.getElementById("subject").value;
 
   if (!hours || hours <= 0) {
-    document.getElementById("result").innerText = "Lütfen geçerli saat gir";
+    document.getElementById("result").innerText = "Geçerli saat gir";
     return;
   }
 
-  let konu = Math.floor(hours * 0.3);
-  let soru = Math.floor(hours * 0.5);
-  let tekrar = hours - (konu + soru);
+  tasks = [
+    { text: `${subject} Konu - ${Math.floor(hours*0.3)} saat`, done:false },
+    { text: `Soru Çözümü - ${Math.floor(hours*0.5)} saat`, done:false },
+    { text: `Tekrar - ${Math.floor(hours*0.2)} saat`, done:false }
+  ];
 
-  let plan = `
-📚 Bugünün Planı (${subject})
+  save();
+  render();
+}
 
-⏱ Toplam Süre: ${hours} saat
+function toggleTask(i) {
+  tasks[i].done = !tasks[i].done;
+  save();
+  render();
+}
 
-📖 Konu Çalışma: ${konu} saat
-❓ Soru Çözümü: ${soru} saat
-🔁 Tekrar + Analiz: ${tekrar} saat
+function save() {
+  localStorage.setItem("yks_" + todayKey, JSON.stringify(tasks));
+}
 
-💡 Tavsiye:
-- Dikkatini bölme
-- Yanlışlarını not al
-- Düzenli mola ver
+function load() {
+  let data = localStorage.getItem("yks_" + todayKey);
+  if (data) tasks = JSON.parse(data);
+}
+
+function progress() {
+  if (tasks.length === 0) return 0;
+  let done = tasks.filter(t => t.done).length;
+  return Math.round((done / tasks.length) * 100);
+}
+
+function render() {
+
+  let html = `<h3>📚 Bugünün Görevleri</h3>`;
+
+  html += `
+    <div class="bar">
+      <div class="fill" style="width:${progress()}%"></div>
+    </div>
+    <p>%${progress()} tamamlandı</p>
   `;
 
-  document.getElementById("result").innerText = plan;
+  tasks.forEach((t,i) => {
+    html += `
+      <div class="task ${t.done ? "done":""}">
+        <span>${t.text}</span>
+        <button onclick="toggleTask(${i})">
+          ${t.done ? "Undo" : "Done"}
+        </button>
+      </div>
+    `;
+  });
+
+  document.getElementById("result").innerHTML = html;
 }
+
+load();
+render();
+
 </script>
 
 </body>
