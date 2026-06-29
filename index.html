@@ -1,304 +1,53 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ArchDevLab - v6.3 Fiber Engine</title>
-  <meta name="author" content="Mustafa (The Architect)">
-
-  <style>
-    :root {
-      --bg-main: #0f0f14;
-      --bg-card: #1c1c26;
-      --bg-input: #13131f;
-      --bg-accent: #2a2a38;
-      --color-success: #4caf50;
-      --color-info: #2196f3;
-      --color-warning: #ff9800;
-      --color-danger: #e81123;
-      --color-text: #ffffff;
-      --border-color: #3a3a4a;
-      --font-family: 'Segoe UI', Arial, sans-serif;
-    }
-
-    body { margin: 0; font-family: var(--font-family); background: var(--bg-main); color: white; display: flex; flex-direction: column; min-height: 100vh; }
-    header { text-align: center; padding: 25px; background: var(--bg-card); border-bottom: 2px solid var(--bg-accent); }
-    
-    .main-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; max-width: 1000px; margin: 40px auto; padding: 0 20px; width: 100%; box-sizing: border-box; }
-    .tile { background: var(--bg-card); padding: 25px; border-radius: 10px; cursor: pointer; border: 1px solid var(--bg-accent); transition: all 0.3s ease; }
-    .tile:hover { transform: translateY(-4px); background: #222230; }
-    .tile.education { border-left: 5px solid var(--color-success); }
-    .tile-icon { font-size: 32px; margin-bottom: 15px; }
-    .tile-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
-    .tile-desc { font-size: 12px; opacity: 0.7; line-height: 1.4; }
-
-    /* PENCERE TASARIMI */
-    .window-panel { display: none; max-width: 600px; margin: 30px auto; background: var(--bg-card); border-radius: 10px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--color-success); }
-    .window-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--bg-accent); padding-bottom: 15px; margin-bottom: 20px; }
-    .close-btn { background: var(--color-danger); color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    
-    /* FORMLAR VE PROGRESS BAR */
-    .form-group { margin-bottom: 15px; }
-    label { font-size: 13px; opacity: 0.8; display: block; margin-bottom: 5px; }
-    input, select, button.main-btn { width: 100%; padding: 12px; border: 1px solid var(--bg-accent); background: var(--bg-input); color: white; border-radius: 5px; box-sizing: border-box; font-family: var(--font-family); }
-    button.main-btn { background: var(--color-success); font-weight: bold; cursor: pointer; border: none; margin-top: 10px; }
-    button.main-btn:hover { opacity: 0.9; }
-    
-    .progress-container { background: var(--bg-accent); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
-    .bar { height: 10px; background: #333; border-radius: 5px; margin-top: 10px; overflow: hidden; }
-    .fill { height: 10px; background: var(--color-success); width: 0%; transition: width 0.4s ease; }
-
-    /* YENİ v6.3 COMPONENT TASARIMLARI */
-    .task-list { margin-top: 20px; }
-    .task-card { display: flex; justify-content: space-between; align-items: center; padding: 12px; margin-bottom: 10px; border-radius: 6px; background: var(--bg-input); transition: all 0.2s ease; border: 1px solid var(--border-color); }
-    .task-status-active { border-left: 4px solid var(--color-info); }
-    .task-status-done { border-left: 4px solid var(--color-success); opacity: 0.6; }
-    .task-status-done .task-title { text-decoration: line-through; }
-    
-    .task-badge { font-size: 11px; font-weight: bold; text-transform: uppercase; }
-    .task-status-active .task-badge { color: var(--color-info); }
-    .task-status-done .task-badge { color: var(--color-success); }
-    .task-title { margin: 5px 0; font-size: 15px; }
-    .task-duration { font-size: 11px; opacity: 0.7; }
-    
-    .task-action-btn { padding: 6px 12px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; font-size: 12px; }
-    .btn-complete { background: var(--color-success); color: white; }
-    .btn-undo { background: var(--bg-accent); color: var(--color-text); border-color: var(--border-color); }
-    .empty-state { text-align: center; opacity: 0.5; font-size: 13px; padding: 20px 0; }
-
-    footer { text-align: center; padding: 20px; font-size: 12px; opacity: 0.4; margin-top: auto; }
-  </style>
-</head>
-<body>
-
-  <header>
-    <h1>ARCHDEVLAB</h1>
-    <div style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Mimarın Dünyası // v6.3 Fiber Engine</div>
-  </header>
-
-  <!-- ANA MENÜ KUTULARI -->
-  <div class="main-grid" id="tilesGrid">
-    <div class="tile education" id="openEduBtn">
-      <div class="tile-icon">📚</div>
-      <div class="tile-title">Eğitim Kutusu</div>
-      <div class="tile-desc">YKS yönlendirme sistemi ve akıllı zaman bölüştürücü.</div>
-    </div>
-  </div>
-
-  <!-- EĞİTİM MODÜLÜ PENCERESİ -->
-  <div class="window-panel" id="education-box" style="display: block;"> <!-- Geliştirme için şimdilik açık bırakıyoruz -->
-    <div class="window-header">
-      <span style="font-weight: bold; font-size: 16px;">📚 Eğitim Modülü</span>
-      <button class="close-btn" id="closeEduBtn">✕ Kapat</button>
-    </div>
-
-    <div class="progress-container">
-      <div id="strategy-text">🧭 Yükleniyor...</div>
-    </div>
-
-    <div class="progress-container">
-      <label id="progress-title">📊 İlerleme Durumu: %0</label>
-      <div class="bar"><div class="fill" id="progress-bar-fill"></div></div>
-    </div>
-
-    <div class="progress-container" style="background: var(--bg-card); border: 1px solid var(--bg-accent);">
-      <div class="form-group">
-        <label for="input-hours">Günlük Çalışma Saati</label>
-        <input type="number" id="input-hours" min="1" max="24" placeholder="Örn: 6" />
-      </div>
-      <div class="form-group">
-        <label for="input-subject">Odaklanılacak Ders</label>
-        <select id="input-subject">
-          <option value="Matematik">Matematik</option>
-          <option value="Türkçe">Türkçe</option>
-          <option value="Fen">Fen</option>
-          <option value="Sosyal">Sosyal</option>
-        </select>
-      </div>
-      <button class="main-btn" id="btn-generate-plan">Stratejik Plan Oluştur</button>
-    </div>
-
-    <!-- GÖREVLERİN RENDER EDİLECEĞİ ALAN -->
-    <div class="task-list" id="task-list"></div>
-  </div>
-
-  <footer>
-    &copy; 2026 ArchDevLab. Powered by Fiber Engine v6.3.
-  </footer>
-
-  <!-- İŞTE EKRANA METİN OLARAK BASILAN KOD BURADA OLMALI! -->
-  <script>
-    /**
-     * ARCHITECT CORE ENGINE - v6.3 
-     * "The Fiber Architect" - Smart State Diffing & Component Scheduler
-     */
-
-    // 1. ADVANCED STATE MANAGER
-    class Store {
-      constructor(initialState) {
-        this.state = initialState;
-        this.listeners = new Set();
-      }
-      getState() { return this.state; }
-      setState(nextState) {
-        const hasChanged = Object.keys(nextState).some(key => this.state[key] !== nextState[key]);
-        if (!hasChanged) return; 
-        this.state = { ...this.state, ...nextState };
-        this.listeners.forEach(listener => listener(this.state));
-        localStorage.setItem('arch_fiber_state', JSON.stringify(this.state));
-      }
-      subscribe(listener) {
-        this.listeners.add(listener);
-        return () => { this.listeners.delete(listener); };
-      }
-    }
-
-    const generateUniqueId = (() => {
-      let count = 0;
-      return (prefix = 'task') => { count++; return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${count}`; };
-    })();
-
-    const savedState = localStorage.getItem('arch_fiber_state');
-    const AppStore = new Store(savedState ? JSON.parse(savedState) : { hours: 0, subject: "", tasks: [] });
-
-    // 2. DETACHED LOGIC ENGINE & NARRATIVE LAYER
-    const EducationEngine = {
-      generateTasks: function (hours, subject) {
-        const p1 = Math.floor(hours * 0.3);
-        const p2 = Math.floor(hours * 0.5);
-        const p3 = hours - (p1 + p2);
-        return [
-          { id: generateUniqueId('t1'), type: "📖 Temel Kurulum", text: `${subject} Konu Çalışması`, duration: p1, done: false },
-          { id: generateUniqueId('t2'), type: "🧠 Aktif Öğrenme", text: `Nitelikli Soru Çözümü`, duration: p2, done: false },
-          { id: generateUniqueId('t3'), type: "🔁 Kalıcı Öğrenme", text: `Hata Analizi & Geri Besleme`, duration: p3, done: false }
-        ];
-      },
-      calculateProgress: function (tasks) {
-        if (!tasks || tasks.length === 0) return 0;
-        const doneCount = tasks.filter(t => t.done).length;
-        return Math.round((doneCount / tasks.length) * 100);
-      }
-    };
-
-    const NarrativeManager = {
-      getStrategyText: function (progress) {
-        if (progress === 0) return "Döngüyü başlat 🔥 İlk adımı atmak korteksi tetikler.";
-        if (progress > 0 && progress < 50) return "Süreç aktif 🚀 Derin odaklanmayı bozma, harika gidiyorsun.";
-        if (progress >= 50 && progress < 100) return "Kritik eşik ⚡ Hatalarından öğrenme aşamasına geçiş yap.";
-        return "Mükemmel yürütme 🎯 Bugünün nöral adaptasyon döngüsü başarıyla kapandı!";
-      }
-    };
-
-    // 3. SMART DIFFING COMPONENT SYSTEM
-    const TaskComponent = {
-      createNode: function (task) {
-        const template = document.createElement('div');
-        template.className = `task-card ${task.done ? 'task-status-done' : 'task-status-active'}`;
-        template.setAttribute('data-id', task.id);
-        template.innerHTML = `
-          <div class="task-content">
-            <span class="task-badge">${task.type}</span>
-            <h4 class="task-title">${task.text}</h4>
-            <small class="task-duration">⏱ Süre: ${task.duration} saat</small>
-          </div>
-          <button class="task-action-btn ${task.done ? 'btn-undo' : 'btn-complete'}" data-id="${task.id}">
-            ${task.done ? '🔄 Geri Al' : '✓ Tamamla'}
-          </button>
-        `;
-        return template;
-      },
-      updateNode: function (existingNode, task) {
-        const isCurrentlyDone = existingNode.classList.contains('task-status-done');
-        if (isCurrentlyDone === task.done) return;
-        
-        if (task.done) { existingNode.classList.replace('task-status-active', 'task-status-done'); } 
-        else { existingNode.classList.replace('task-status-done', 'task-status-active'); }
-
-        const button = existingNode.querySelector('.task-action-btn');
-        if (button) {
-          button.className = `task-action-btn ${task.done ? 'btn-undo' : 'btn-complete'}`;
-          button.innerHTML = task.done ? '🔄 Geri Al' : '✓ Tamamla';
-        }
-      }
-    };
-
-    // 4. APPLICATION SCHEDULER & CONTROLLER
-    const EducationController = {
-      init: function () {
-        this.cacheDOM();
-        this.bindEvents();
-        this.unsubscribeStore = AppStore.subscribe((state) => this.reconcile(state));
-        this.reconcile(AppStore.getState());
-      },
-      cacheDOM: function () {
-        this.taskListContainer = document.querySelector('#task-list');
-        this.progressBar = document.querySelector('#progress-bar-fill');
-        this.progressText = document.querySelector('#progress-title');
-        this.strategyText = document.querySelector('#strategy-text');
-        this.btnGenerate = document.querySelector('#btn-generate-plan');
-        
-        // Pencere kontrolleri
-        this.eduBox = document.querySelector('#education-box');
-        this.tilesGrid = document.querySelector('#tilesGrid');
-        this.closeBtn = document.querySelector('#closeEduBtn');
-        this.openBtn = document.querySelector('#openEduBtn');
-      },
-      bindEvents: function () {
-        // Kutu aç/kapat
-        this.closeBtn.addEventListener('click', () => { this.eduBox.style.display = 'none'; this.tilesGrid.style.display = 'grid'; });
-        this.openBtn.addEventListener('click', () => { this.eduBox.style.display = 'block'; this.tilesGrid.style.display = 'none'; });
-
-        // Plan Oluştur
-        this.btnGenerate.addEventListener('click', () => {
-          const hours = parseFloat(document.querySelector('#input-hours').value) || 0;
-          const subject = document.querySelector('#input-subject').value.trim();
-          if (hours > 0 && subject) {
-            const newTasks = EducationEngine.generateTasks(hours, subject);
-            AppStore.setState({ hours, subject, tasks: newTasks });
-          }
-        });
-
-        // Görev Tamamlama Delegasyonu
-        this.taskListContainer.addEventListener('click', (e) => {
-          const button = e.target.closest('.task-action-btn');
-          if (!button) return;
-          const taskId = button.dataset.id;
-          const currentTasks = AppStore.getState().tasks;
-          const updatedTasks = currentTasks.map(task => task.id === taskId ? { ...task, done: !task.done } : task );
-          AppStore.setState({ tasks: updatedTasks });
-        });
-      },
-      reconcile: function (state) {
-        const progress = EducationEngine.calculateProgress(state.tasks);
-        if (this.progressBar) this.progressBar.style.width = `${progress}%`;
-        if (this.progressText) this.progressText.textContent = `📊 İlerleme Durumu: %${progress}`;
-        if (this.strategyText) this.strategyText.innerHTML = `🧭 <b>Günlük Strateji:</b> ${NarrativeManager.getStrategyText(progress)}`;
-
-        if (state.tasks.length === 0) {
-          this.taskListContainer.innerHTML = `<p class="empty-state">Aktif plan bulunamadı. Yukarıdan yeni bir döngü başlatın.</p>`;
-          return;
-        }
-
-        const emptyState = this.taskListContainer.querySelector('.empty-state');
-        if (emptyState) emptyState.remove();
-
-        const existingNodes = Array.from(this.taskListContainer.children);
-        state.tasks.forEach((task) => {
-          const matchedNode = existingNodes.find(node => node.getAttribute('data-id') === task.id);
-          if (matchedNode) { TaskComponent.updateNode(matchedNode, task); } 
-          else { this.taskListContainer.appendChild(TaskComponent.createNode(task)); }
-        });
-
-        existingNodes.forEach(node => {
-          const nodeId = node.getAttribute('data-id');
-          const stillExists = state.tasks.some(task => task.id === nodeId);
-          if (!stillExists && nodeId) { node.remove(); }
-        });
-      }
-    };
-
-    document.addEventListener('DOMContentLoaded', () => EducationController.init());
-  </script>
-</body>
-  </html>
+<!DOCTYPE html>  <html lang="tr">  
+<head>  
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
+  <title>ArchDevLab - v6.4 Architect</title>  
+  <style>  
+    :root {  
+      --bg-main: #0f0f14; --bg-card: #1c1c26; --bg-input: #13131f; --bg-accent: #2a2a38;  
+      --color-success: #4caf50; --color-info: #2196f3; --color-warning: #ff9800; --color-danger: #e81123;  
+      --color-text: #ffffff; --border-color: #3a3a4a;  
+    }  
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg-main); color: white; }  
+    header { text-align: center; padding: 20px; background: var(--bg-card); border-bottom: 2px solid var(--bg-accent); }  .main-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; max-width: 800px; margin: 40px auto; padding: 0 20px; }  
+.tile { background: var(--bg-card); padding: 20px; border-radius: 10px; cursor: pointer; border: 1px solid var(--bg-accent); transition: 0.3s; text-align: center; }  
+.tile:hover { transform: translateY(-4px); background: #222230; }  
+.tile-icon { font-size: 28px; margin-bottom: 10px; }  
+.tile-title { font-weight: bold; font-size: 14px; }  
   
+.window-panel { display: none; max-width: 600px; margin: 20px auto; background: var(--bg-card); border-radius: 10px; padding: 20px; border: 1px solid var(--border-color); }  
+.close-btn { background: var(--color-danger); border: none; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
+  </style>  
+</head>  
+<body>    <header><h1>ARCHDEVLAB</h1></header>    <!-- ANA MENÜ -->    <div class="main-grid" id="tilesGrid">  
+    <div class="tile" data-target="edu-box"><div class="tile-icon">📚</div><div class="tile-title">Eğitim Kutusu</div></div>  
+    <div class="tile" data-target="net-box"><div class="tile-icon">🧮</div><div class="tile-title">Net Hesaplayıcı</div></div>  
+    <div class="tile"><div class="tile-icon">🎯</div><div class="tile-title">Sıralama</div></div>  
+    <div class="tile"><div class="tile-icon">⚙️</div><div class="tile-title">Ayarlar</div></div>  
+  </div>    <!-- MODÜL PENCERELERİ -->    <div id="edu-box" class="window-panel">  
+    <div style="display:flex; justify-content:space-between;"> <span>📚 Eğitim Modülü</span> <button class="close-btn" data-target="edu-box">✕</button></div>  
+    <div id="task-list"></div>  
+  </div>    <div id="net-box" class="window-panel">  
+    <div style="display:flex; justify-content:space-between;"> <span>🧮 Net Hesaplayıcı</span> <button class="close-btn" data-target="net-box">✕</button></div>  
+    <p>Buraya net hesaplama formlarını ekleyeceğiz.</p>  
+  </div>    <script>  
+    // Dinamik UI Controller  
+    const UI = {  
+      init() {  
+        document.querySelectorAll('.tile[data-target]').forEach(t => {  
+          t.addEventListener('click', () => this.toggle(t.dataset.target, true));  
+        });  
+        document.querySelectorAll('.close-btn').forEach(b => {  
+          b.addEventListener('click', () => this.toggle(b.dataset.target, false));  
+        });  
+      },  
+      toggle(id, show) {  
+        document.getElementById(id).style.display = show ? 'block' : 'none';  
+        document.getElementById('tilesGrid').style.display = show ? 'none' : 'grid';  
+      }  
+    };  
+    document.addEventListener('DOMContentLoaded', () => UI.init());  
+  </script>  </body>  
+</html>  
