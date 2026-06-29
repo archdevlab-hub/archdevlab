@@ -44,6 +44,7 @@
       padding: 15px;
       margin-top: 20px;
       border-radius: 10px;
+      white-space: pre-line;
     }
   </style>
 </head>
@@ -77,19 +78,36 @@
 </div>
 
 <script>
-  function generatePlan() {
-    let hours = document.getElementById("hours").value;
-    let subject = document.getElementById("subject").value;
+function generatePlan() {
+  let hours = Number(document.getElementById("hours").value);
+  let subject = document.getElementById("subject").value;
 
-    if (!hours) {
-      document.getElementById("result").innerText = "Lütfen saat gir";
-      return;
-    }
-
-    let plan = `Bugün ${hours} saat ${subject} çalışmalısın.`;
-
-    document.getElementById("result").innerText = plan;
+  if (!hours || hours <= 0) {
+    document.getElementById("result").innerText = "Lütfen geçerli saat gir";
+    return;
   }
+
+  let konu = Math.floor(hours * 0.3);
+  let soru = Math.floor(hours * 0.5);
+  let tekrar = hours - (konu + soru);
+
+  let plan = `
+📚 Bugünün Planı (${subject})
+
+⏱ Toplam Süre: ${hours} saat
+
+📖 Konu Çalışma: ${konu} saat
+❓ Soru Çözümü: ${soru} saat
+🔁 Tekrar + Analiz: ${tekrar} saat
+
+💡 Tavsiye:
+- Dikkatini bölme
+- Yanlışlarını not al
+- Düzenli mola ver
+  `;
+
+  document.getElementById("result").innerText = plan;
+}
 </script>
 
 </body>
