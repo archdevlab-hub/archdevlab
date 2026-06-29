@@ -1,53 +1,426 @@
-<!DOCTYPE html>  <html lang="tr">  
-<head>  
-  <meta charset="UTF-8" />  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>  
-  <title>ArchDevLab - v6.4 Architect</title>  
-  <style>  
-    :root {  
-      --bg-main: #0f0f14; --bg-card: #1c1c26; --bg-input: #13131f; --bg-accent: #2a2a38;  
-      --color-success: #4caf50; --color-info: #2196f3; --color-warning: #ff9800; --color-danger: #e81123;  
-      --color-text: #ffffff; --border-color: #3a3a4a;  
-    }  
-    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg-main); color: white; }  
-    header { text-align: center; padding: 20px; background: var(--bg-card); border-bottom: 2px solid var(--bg-accent); }  .main-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; max-width: 800px; margin: 40px auto; padding: 0 20px; }  
-.tile { background: var(--bg-card); padding: 20px; border-radius: 10px; cursor: pointer; border: 1px solid var(--bg-accent); transition: 0.3s; text-align: center; }  
-.tile:hover { transform: translateY(-4px); background: #222230; }  
-.tile-icon { font-size: 28px; margin-bottom: 10px; }  
-.tile-title { font-weight: bold; font-size: 14px; }  
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ArchDevLab - v6.4 Architect</title>
+  <style>
+    :root {
+      --bg-main: #0f0f14; --bg-card: #1c1c26; --bg-input: #13131f; --bg-accent: #2a2a38;
+      --color-success: #4caf50; --color-info: #2196f3; --color-warning: #ff9800; --color-danger: #e81123;
+      --color-text: #ffffff; --border-color: #3a3a4a;
+    }
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg-main); color: white; min-height: 100vh; }
+    header { text-align: center; padding: 20px; background: var(--bg-card); border-bottom: 2px solid var(--bg-accent); }
+    
+    .main-grid { 
+      display: grid; 
+      grid-template-columns: repeat(2, 1fr); 
+      gap: 15px; 
+      max-width: 800px; 
+      margin: 40px auto; 
+      padding: 0 20px; 
+    }
+    
+    .tile { 
+      background: var(--bg-card); 
+      padding: 20px; 
+      border-radius: 10px; 
+      cursor: pointer; 
+      border: 1px solid var(--bg-accent); 
+      transition: 0.3s; 
+      text-align: center; 
+    }
+    .tile:hover { transform: translateY(-4px); background: #222230; }
+    .tile-icon { font-size: 28px; margin-bottom: 10px; }
+    .tile-title { font-weight: bold; font-size: 14px; }
+    
+    .window-panel { 
+      display: none; 
+      max-width: 600px; 
+      margin: 20px auto; 
+      background: var(--bg-card); 
+      border-radius: 10px; 
+      padding: 20px; 
+      border: 1px solid var(--border-color); 
+    }
+    
+    .close-btn { 
+      background: var(--color-danger); 
+      border: none; 
+      color: white; 
+      padding: 5px 10px; 
+      border-radius: 4px; 
+      cursor: pointer; 
+    }
+    
+    .panel-header {
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: #aaa;
+    }
+    
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: white;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: white;
+      margin-right: 5px;
+    }
+    
+    .btn-primary { background: var(--color-info); }
+    .btn-success { background: var(--color-success); }
+    .btn-warning { background: var(--color-warning); }
+    
+    .task-item {
+      background: var(--bg-input);
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      border-left: 3px solid var(--color-info);
+    }
+    
+    .result-box {
+      background: var(--bg-input);
+      padding: 15px;
+      border-radius: 4px;
+      margin-top: 10px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .flex-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <header><h1>🏛️ ARCHDEVLAB</h1></header>
   
-.window-panel { display: none; max-width: 600px; margin: 20px auto; background: var(--bg-card); border-radius: 10px; padding: 20px; border: 1px solid var(--border-color); }  
-.close-btn { background: var(--color-danger); border: none; color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-
-  </style>  
-</head>  
-<body>    <header><h1>ARCHDEVLAB</h1></header>    <!-- ANA MENÜ -->    <div class="main-grid" id="tilesGrid">  
-    <div class="tile" data-target="edu-box"><div class="tile-icon">📚</div><div class="tile-title">Eğitim Kutusu</div></div>  
-    <div class="tile" data-target="net-box"><div class="tile-icon">🧮</div><div class="tile-title">Net Hesaplayıcı</div></div>  
-    <div class="tile"><div class="tile-icon">🎯</div><div class="tile-title">Sıralama</div></div>  
-    <div class="tile"><div class="tile-icon">⚙️</div><div class="tile-title">Ayarlar</div></div>  
-  </div>    <!-- MODÜL PENCERELERİ -->    <div id="edu-box" class="window-panel">  
-    <div style="display:flex; justify-content:space-between;"> <span>📚 Eğitim Modülü</span> <button class="close-btn" data-target="edu-box">✕</button></div>  
-    <div id="task-list"></div>  
-  </div>    <div id="net-box" class="window-panel">  
-    <div style="display:flex; justify-content:space-between;"> <span>🧮 Net Hesaplayıcı</span> <button class="close-btn" data-target="net-box">✕</button></div>  
-    <p>Buraya net hesaplama formlarını ekleyeceğiz.</p>  
-  </div>    <script>  
-    // Dinamik UI Controller  
-    const UI = {  
-      init() {  
-        document.querySelectorAll('.tile[data-target]').forEach(t => {  
-          t.addEventListener('click', () => this.toggle(t.dataset.target, true));  
-        });  
-        document.querySelectorAll('.close-btn').forEach(b => {  
-          b.addEventListener('click', () => this.toggle(b.dataset.target, false));  
-        });  
-      },  
-      toggle(id, show) {  
-        document.getElementById(id).style.display = show ? 'block' : 'none';  
-        document.getElementById('tilesGrid').style.display = show ? 'none' : 'grid';  
-      }  
-    };  
-    document.addEventListener('DOMContentLoaded', () => UI.init());  
-  </script>  </body>  
-</html>  
+  <!-- ANA MENÜ -->
+  <div class="main-grid" id="tilesGrid">
+    <div class="tile" data-target="edu-box">
+      <div class="tile-icon">📚</div>
+      <div class="tile-title">Eğitim Kutusu</div>
+    </div>
+    <div class="tile" data-target="net-box">
+      <div class="tile-icon">🧮</div>
+      <div class="tile-title">Net Hesaplayıcı</div>
+    </div>
+    <div class="tile" data-target="rank-box">
+      <div class="tile-icon">🎯</div>
+      <div class="tile-title">Sıralama</div>
+    </div>
+    <div class="tile" data-target="settings-box">
+      <div class="tile-icon">⚙️</div>
+      <div class="tile-title">Ayarlar</div>
+    </div>
+  </div>
+  
+  <!-- MODÜL PENCERELERİ -->
+  
+  <!-- Eğitim Modülü -->
+  <div id="edu-box" class="window-panel">
+    <div class="panel-header">
+      <span>📚 Eğitim Modülü</span>
+      <button class="close-btn" data-target="edu-box">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Yeni Görev Ekle:</label>
+      <div class="flex-row">
+        <input type="text" id="taskInput" placeholder="Görev girin..." style="flex:1;">
+        <button class="btn btn-success" onclick="addTask()">Ekle</button>
+      </div>
+    </div>
+    <div id="task-list"></div>
+  </div>
+  
+  <!-- Net Hesaplayıcı -->
+  <div id="net-box" class="window-panel">
+    <div class="panel-header">
+      <span>🧮 Net Hesaplayıcı</span>
+      <button class="close-btn" data-target="net-box">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Doğru Sayısı:</label>
+      <input type="number" id="correct" value="40" min="0" max="60">
+    </div>
+    <div class="form-group">
+      <label>Yanlış Sayısı:</label>
+      <input type="number" id="wrong" value="10" min="0" max="60">
+    </div>
+    <div class="form-group">
+      <label>Boş Sayısı:</label>
+      <input type="number" id="empty" value="10" min="0" max="60">
+    </div>
+    <button class="btn btn-primary" onclick="calculateNet()">Hesapla</button>
+    <div id="net-result" class="result-box" style="display:none;">
+      <h3>Sonuç:</h3>
+      <p id="net-display"></p>
+    </div>
+  </div>
+  
+  <!-- Sıralama Modülü -->
+  <div id="rank-box" class="window-panel">
+    <div class="panel-header">
+      <span>🎯 Sıralama Modülü</span>
+      <button class="close-btn" data-target="rank-box">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Öğrenci Sayısı:</label>
+      <input type="number" id="studentCount" value="5" min="1">
+    </div>
+    <div id="student-inputs"></div>
+    <button class="btn btn-primary" onclick="generateStudents()">Öğrenci Ekle</button>
+    <button class="btn btn-success" onclick="calculateRank()">Sırala</button>
+    <div id="rank-result" class="result-box" style="display:none;"></div>
+  </div>
+  
+  <!-- Ayarlar Modülü -->
+  <div id="settings-box" class="window-panel">
+    <div class="panel-header">
+      <span>⚙️ Ayarlar</span>
+      <button class="close-btn" data-target="settings-box">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Tema Rengi:</label>
+      <select id="themeSelect" onchange="changeTheme()">
+        <option value="dark">Koyu (Dark)</option>
+        <option value="light">Açık (Light)</option>
+        <option value="blue">Mavi</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Yazı Boyutu:</label>
+      <input type="range" id="fontSize" min="12" max="24" value="16" onchange="changeFontSize()">
+      <span id="sizeDisplay">16px</span>
+    </div>
+    <div class="form-group">
+      <button class="btn btn-warning" onclick="resetSettings()">Varsayılan Ayarlar</button>
+    </div>
+  </div>
+  
+  <script>
+    // ========== GELİŞMİŞ UI CONTROLLER ==========
+    const UI = {
+      activePanels: [],
+      
+      init() {
+        // Menü tile'ları
+        document.querySelectorAll('.tile[data-target]').forEach(t => {
+          t.addEventListener('click', () => this.toggle(t.dataset.target, true));
+        });
+        
+        // Kapatma butonları
+        document.querySelectorAll('.close-btn').forEach(b => {
+          b.addEventListener('click', () => this.toggle(b.dataset.target, false));
+        });
+        
+        // Başlangıçta varsayılan ayarları yükle
+        this.loadSettings();
+      },
+      
+      toggle(id, show) {
+        const panel = document.getElementById(id);
+        if (!panel) return;
+        
+        if (show) {
+          panel.style.display = 'block';
+          if (!this.activePanels.includes(id)) {
+            this.activePanels.push(id);
+          }
+        } else {
+          panel.style.display = 'none';
+          this.activePanels = this.activePanels.filter(p => p !== id);
+        }
+        
+        // Grid görünürlüğünü güncelle
+        document.getElementById('tilesGrid').style.display = 
+          this.activePanels.length > 0 ? 'none' : 'grid';
+      },
+      
+      loadSettings() {
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        const savedSize = localStorage.getItem('fontSize') || '16';
+        document.getElementById('themeSelect').value = savedTheme;
+        document.getElementById('fontSize').value = savedSize;
+        document.getElementById('sizeDisplay').textContent = savedSize + 'px';
+        this.applyTheme(savedTheme);
+        this.applyFontSize(savedSize);
+      },
+      
+      applyTheme(theme) {
+        const root = document.documentElement;
+        if (theme === 'light') {
+          root.style.setProperty('--bg-main', '#f0f0f0');
+          root.style.setProperty('--bg-card', '#ffffff');
+          root.style.setProperty('--bg-input', '#e8e8e8');
+          root.style.setProperty('--bg-accent', '#d0d0d0');
+          root.style.setProperty('--color-text', '#000000');
+          root.style.setProperty('--border-color', '#cccccc');
+        } else if (theme === 'blue') {
+          root.style.setProperty('--bg-main', '#0a1628');
+          root.style.setProperty('--bg-card', '#1a2a4a');
+          root.style.setProperty('--bg-input', '#0f1f3a');
+          root.style.setProperty('--bg-accent', '#2a4a6a');
+          root.style.setProperty('--color-text', '#ffffff');
+          root.style.setProperty('--border-color', '#3a5a7a');
+        } else { // dark
+          root.style.setProperty('--bg-main', '#0f0f14');
+          root.style.setProperty('--bg-card', '#1c1c26');
+          root.style.setProperty('--bg-input', '#13131f');
+          root.style.setProperty('--bg-accent', '#2a2a38');
+          root.style.setProperty('--color-text', '#ffffff');
+          root.style.setProperty('--border-color', '#3a3a4a');
+        }
+        localStorage.setItem('theme', theme);
+      },
+      
+      applyFontSize(size) {
+        document.body.style.fontSize = size + 'px';
+        localStorage.setItem('fontSize', size);
+      }
+    };
+    
+    // ========== EĞİTİM MODÜLÜ ==========
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const text = input.value.trim();
+      if (!text) return alert('Lütfen bir görev girin!');
+      
+      const list = document.getElementById('task-list');
+      const div = document.createElement('div');
+      div.className = 'task-item';
+      div.innerHTML = `
+        ${text}
+        <button onclick="this.parentElement.remove()" style="float:right;background:var(--color-danger);border:none;color:white;padding:2px 8px;border-radius:4px;cursor:pointer;">Sil</button>
+      `;
+      list.appendChild(div);
+      input.value = '';
+    }
+    
+    // ========== NET HESAPLAYICI ==========
+    function calculateNet() {
+      const correct = parseInt(document.getElementById('correct').value) || 0;
+      const wrong = parseInt(document.getElementById('wrong').value) || 0;
+      const empty = parseInt(document.getElementById('empty').value) || 0;
+      
+      const total = correct + wrong + empty;
+      if (total !== 60) {
+        alert('Toplam soru sayısı 60 olmalıdır!');
+        return;
+      }
+      
+      const net = correct - (wrong / 4);
+      const resultDiv = document.getElementById('net-result');
+      const display = document.getElementById('net-display');
+      
+      display.innerHTML = `
+        <strong>Net: ${net.toFixed(2)}</strong><br>
+        Doğru: ${correct} | Yanlış: ${wrong} | Boş: ${empty}
+      `;
+      resultDiv.style.display = 'block';
+    }
+    
+    // ========== SIRALAMA MODÜLÜ ==========
+    function generateStudents() {
+      const count = parseInt(document.getElementById('studentCount').value) || 5;
+      const container = document.getElementById('student-inputs');
+      container.innerHTML = '';
+      
+      for (let i = 0; i < count; i++) {
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        div.innerHTML = `
+          <label>Öğrenci ${i+1} Adı:</label>
+          <input type="text" class="student-name" placeholder="İsim girin..." style="width:70%;">
+          <input type="number" class="student-score" placeholder="Puan" style="width:25%;" min="0" max="100">
+        `;
+        container.appendChild(div);
+      }
+    }
+    
+    function calculateRank() {
+      const names = document.querySelectorAll('.student-name');
+      const scores = document.querySelectorAll('.student-score');
+      const students = [];
+      
+      for (let i = 0; i < names.length; i++) {
+        const name = names[i].value.trim() || `Öğrenci ${i+1}`;
+        const score = parseInt(scores[i].value) || 0;
+        students.push({ name, score });
+      }
+      
+      students.sort((a, b) => b.score - a.score);
+      
+      const resultDiv = document.getElementById('rank-result');
+      let html = '<h3>Sıralama:</h3><ol>';
+      students.forEach((s, index) => {
+        html += `<li>${s.name} - ${s.score} puan ${index === 0 ? '🏆' : ''}</li>`;
+      });
+      html += '</ol>';
+      resultDiv.innerHTML = html;
+      resultDiv.style.display = 'block';
+    }
+    
+    // ========== AYARLAR MODÜLÜ ==========
+    function changeTheme() {
+      const theme = document.getElementById('themeSelect').value;
+      UI.applyTheme(theme);
+    }
+    
+    function changeFontSize() {
+      const size = document.getElementById('fontSize').value;
+      document.getElementById('sizeDisplay').textContent = size + 'px';
+      UI.applyFontSize(size);
+    }
+    
+    function resetSettings() {
+      document.getElementById('themeSelect').value = 'dark';
+      document.getElementById('fontSize').value = '16';
+      document.getElementById('sizeDisplay').textContent = '16px';
+      UI.applyTheme('dark');
+      UI.applyFontSize('16');
+      alert('Ayarlar varsayılana döndürüldü!');
+    }
+    
+    // ========== OTOMATİK BAŞLATMA ==========
+    document.addEventListener('DOMContentLoaded', () => {
+      UI.init();
+      generateStudents(); // Sıralama için varsayılan öğrenci listesi
+    });
+    
+    // Klavye kısayolu: Enter ile görev ekle
+    document.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && document.activeElement.id === 'taskInput') {
+        addTask();
+      }
+    });
+  </script>
+</body>
+  </html>
