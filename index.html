@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Eğitim Kutusu v3</title>
+<title>Eğitim Kutusu v4</title>
 
 <style>
 body {
@@ -39,6 +39,7 @@ button {
   cursor: pointer;
 }
 
+/* DASHBOARD */
 .education-card {
   background: #2a2a38;
   padding: 15px;
@@ -53,14 +54,14 @@ button {
 
 .subtitle {
   font-size: 13px;
-  opacity: 0.8;
+  opacity: 0.85;
   margin-bottom: 10px;
 }
 
 .status {
   font-size: 14px;
-  margin-top: 8px;
-  opacity: 0.9;
+  margin-top: 10px;
+  opacity: 0.95;
 }
 
 .card {
@@ -98,159 +99,10 @@ button {
   text-decoration: line-through;
   opacity: 0.6;
 }
-</style>
-</head>
 
-<body>
-
-<header>
-  <h1>Eğitim Kutusu</h1>
-  <p>YKS öğrenme rehberi</p>
-</header>
-
-<div class="container">
-
-<div class="education-card">
-  <div class="title">📚 Günlük Öğrenme Planı</div>
-  <div class="subtitle">
-    “Sadece görev değil → öğrenme stratejisi”
-  </div>
-
-  <label>Günlük çalışma saati</label>
-  <input type="number" id="hours" />
-
-  <label>Ders seç</label>
-  <select id="subject">
-    <option>Matematik</option>
-    <option>Türkçe</option>
-    <option>Fen</option>
-    <option>Sosyal</option>
-  </select>
-
-  <button onclick="generatePlan()">Planı Oluştur</button>
-</div>
-
-<div class="card" id="result"></div>
-
-</div>
-
-<script>
-
-let tasks = [];
-let todayKey = getTodayKey();
-
-function getTodayKey() {
-  let d = new Date();
-  return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + (d.getDate());
-}
-
-function generatePlan() {
-  let hours = Number(document.getElementById("hours").value);
-  let subject = document.getElementById("subject").value;
-
-  if (!hours || hours <= 0) {
-    alert("Geçerli saat gir");
-    return;
-  }
-
-  tasks = [
-    {
-      type: "📖 Temel Öğrenme",
-      text: `${subject} konu çalışması`,
-      detail: `${Math.floor(hours*0.3)} saat → konu temeli kur`,
-      done: false
-    },
-    {
-      type: "🧠 Pekiştirme",
-      text: `Soru çözümü`,
-      detail: `${Math.floor(hours*0.5)} saat → bilgiyi aktif kullan`,
-      done: false
-    },
-    {
-      type: "🔁 Kalıcılık",
-      text: `Tekrar + analiz`,
-      detail: `${Math.floor(hours*0.2)} saat → unutmayı engelle`,
-      done: false
-    }
-  ];
-
-  save();
-  render();
-}
-
-function toggleTask(i) {
-  tasks[i].done = !tasks[i].done;
-  save();
-  render();
-}
-
-function save() {
-  localStorage.setItem("yks_" + todayKey, JSON.stringify(tasks));
-}
-
-function load() {
-  let data = localStorage.getItem("yks_" + todayKey);
-  if (data) tasks = JSON.parse(data);
-}
-
-function progress() {
-  if (tasks.length === 0) return 0;
-  let done = tasks.filter(t => t.done).length;
-  return Math.round((done / tasks.length) * 100);
-}
-
-function statusText(p) {
-  if (p === 0) return "Başlamaya hazır 🔥";
-  if (p < 50) return "İyi gidiyorsun 🚀";
-  if (p < 100) return "Bitirmeye yakın ⚡";
-  return "Tamamlandı 🎯 mükemmel!";
-}
-
-function render() {
-
-  let p = progress();
-
-  let html = `
-    <div class="education-card">
-      <div class="title">📊 Günlük Durum: %${p}</div>
-      <div class="subtitle">${statusText(p)}</div>
-
-      <div class="bar">
-        <div class="fill" style="width:${p}%"></div>
-      </div>
-
-      <div class="status">
-        ${p === 100 ? "Bugün görev tamamlandı 🎯" : "Devam et, öğreniyorsun"}
-      </div>
-    </div>
-  `;
-
-  if (tasks.length === 0) {
-    html += `<p>Plan oluşturmak için yukarıdan başla.</p>`;
-  } else {
-    tasks.forEach((t,i) => {
-      html += `
-        <div class="task ${t.done ? "done":""}">
-          <div>
-            <b>${t.type}</b><br>
-            ${t.text}<br>
-            <small>${t.detail}</small>
-          </div>
-          <button onclick="toggleTask(${i})">
-            ${t.done ? "Undo" : "Done"}
-          </button>
-        </div>
-      `;
-    });
-  }
-
-  document.getElementById("result").innerHTML = html;
-}
-
-load();
-render();
-
-</script>
-
-</body>
-</html>
+/* STRATEGY BOX */
+.strategy {
+  background: #2a2a38;
+  padding: 10px;
+  border-radius: 10px;
+ 
