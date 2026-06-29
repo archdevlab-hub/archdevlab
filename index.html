@@ -1,108 +1,496 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Eğitim Kutusu v4</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ArchDevLab - v6 Core Framework</title>
+  <meta name="description" content="ArchDevLab; dinamik pencere yönetimi, reaktif state kontrolü ve tam ölçeklenebilir altyapıya sahip v6 mimarisi.">
+  <meta name="author" content="Mustafa (The Architect)">
 
-<style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #0f0f14;
-  color: white;
-}
+  <style>
+    :root {
+      --bg-main: #0f0f14;
+      --bg-card: #1c1c26;
+      --bg-input: #13131f;
+      --bg-accent: #2a2a38;
+      --color-success: #4caf50;
+      --color-info: #2196f3;
+      --color-warning: #ff9800;
+      --color-danger: #e81123;
+      --font-family: 'Segoe UI', Arial, sans-serif;
+    }
 
-header {
-  text-align: center;
-  padding: 20px;
-  background: #1c1c26;
-}
+    body {
+      margin: 0;
+      font-family: var(--font-family);
+      background: var(--bg-main);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
 
-.container {
-  padding: 20px;
-  max-width: 600px;
-  margin: auto;
-}
+    header {
+      text-align: center;
+      padding: 25px;
+      background: var(--bg-card);
+      border-bottom: 2px solid var(--bg-accent);
+    }
 
-input, select, button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 5px;
-}
+    .main-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 20px;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
-button {
-  background: #4caf50;
-  color: white;
-  cursor: pointer;
-}
+    /* TILES (DİNAMİK ÖLÇEKLENEBİLİR OLANLARDA DONUKLUK KALKTI) */
+    .tile {
+      background: var(--bg-card);
+      padding: 25px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid var(--bg-accent);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-/* DASHBOARD */
-.education-card {
-  background: #2a2a38;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-}
+    .tile:hover {
+      transform: translateY(-4px);
+      background: #222230;
+    }
+    
+    .tile.education { border-left: 5px solid var(--color-success); }
+    .tile.tech { border-left: 5px solid var(--color-info); }
+    .tile.health { border-left: 5px solid #e91e63; }
+    .tile.finance { border-left: 5px solid var(--color-warning); }
 
-.title {
-  font-size: 18px;
-  margin-bottom: 5px;
-}
+    .tile:hover.education { border-color: var(--color-success); }
+    .tile:hover.tech { border-color: var(--color-info); }
+    .tile:hover.health { border-color: #e91e63; }
+    .tile:hover.finance { border-color: var(--color-warning); }
 
-.subtitle {
-  font-size: 13px;
-  opacity: 0.85;
-  margin-bottom: 10px;
-}
+    .tile-icon { font-size: 32px; margin-bottom: 15px; }
+    .tile-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .tile-desc { font-size: 12px; opacity: 0.7; line-height: 1.4; }
 
-.status {
-  font-size: 14px;
-  margin-top: 10px;
-  opacity: 0.95;
-}
+    /* DİNAMİK WINDOW PANEL (Ortak Sınıf) */
+    .window-panel {
+      display: none;
+      max-width: 600px;
+      margin: 30px auto;
+      background: var(--bg-card);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 1px solid var(--bg-accent);
+    }
 
-.card {
-  background: #1c1c26;
-  padding: 15px;
-  margin-top: 20px;
-  border-radius: 10px;
-}
+    /* Pencerelerin aktif renk temaları */
+    .window-panel.active-education { border-color: var(--color-success); }
+    .window-panel.active-tech { border-color: var(--color-info); }
+    .window-panel.active-health { border-color: #e91e63; }
+    .window-panel.active-finance { border-color: var(--color-warning); }
 
-.bar {
-  height: 10px;
-  background: #333;
-  border-radius: 5px;
-  margin-top: 10px;
-  overflow: hidden;
-}
+    .window-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--bg-accent);
+      padding-bottom: 15px;
+      margin-bottom: 20px;
+    }
 
-.fill {
-  height: 10px;
-  background: #4caf50;
-  width: 0%;
-  transition: 0.3s;
-}
+    .close-btn {
+      background: var(--color-danger);
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .close-btn:hover { background: #f1707a; }
 
-.task {
-  display: flex;
-  justify-content: space-between;
-  margin: 10px 0;
-  padding: 10px;
-  background: #2a2a38;
-  border-radius: 5px;
-}
+    /* FORM ÖĞELERİ */
+    .form-group { margin-bottom: 15px; }
+    label { font-size: 13px; opacity: 0.8; display: block; margin-bottom: 5px; }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--bg-accent);
+      background: var(--bg-input);
+      color: white;
+      border-radius: 5px;
+      box-sizing: border-box;
+      font-family: var(--font-family);
+    }
+    button { background: var(--color-success); font-weight: bold; cursor: pointer; border: none; }
+    button:hover { opacity: 0.9; }
 
-.done {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
+    /* PROGRESS VE GÖREVLER */
+    .progress-container { background: var(--bg-accent); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+    .bar { height: 10px; background: #333; border-radius: 5px; margin-top: 10px; overflow: hidden; }
+    .fill { height: 10px; background: var(--color-success); width: 0%; transition: width 0.4s ease; }
 
-/* STRATEGY BOX */
-.strategy {
-  background: #2a2a38;
-  padding: 10px;
-  border-radius: 10px;
- 
+    .task-list { margin-top: 20px; }
+    .task {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 10px 0;
+      padding: 12px;
+      background: var(--bg-accent);
+      border-radius: 5px;
+      border-left: 4px solid var(--color-info);
+    }
+    .task.done { border-left-color: var(--color-success); opacity: 0.6; }
+    .task.done .task-title { text-decoration: line-through; }
+    .task button { width: auto; padding: 6px 12px; background: var(--bg-input); font-size: 12px; }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 24px;
+      background: var(--bg-accent);
+      border-left: 4px solid var(--color-info);
+      border-radius: 4px;
+      display: none;
+      z-index: 1000;
+      font-size: 14px;
+    }
+
+    .error-msg { color: #ff6b6b; font-size: 12px; margin-top: 5px; display: none; }
+    footer { text-align: center; padding: 20px; font-size: 12px; opacity: 0.4; margin-top: auto; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>ARCHDEVLAB</h1>
+    <div style="font-size: 12px; opacity: 0.6; margin-top: 5px;">Mimarın Dünyası // Framework v6 Architecture</div>
+  </header>
+
+  <!-- WINDOWS ANA GRID (DATA-TARGET İLE TETİKLENİYOR - SATIR İÇİ ONCLICK YOK) -->
+  <div class="main-grid" id="tilesGrid">
+    <div class="tile education" data-target="educationWindow">
+      <div class="tile-icon">📚</div>
+      <div class="tile-title">Eğitim Kutusu</div>
+      <div class="tile-desc">YKS yönlendirme sistemi ve akıllı zaman bölüştürücü.</div>
+    </div>
+    <div class="tile tech" data-target="techWindow">
+      <div class="tile-icon">💻</div>
+      <div class="tile-title">Teknoloji & Donanım</div>
+      <div class="tile-desc">F/P donanım mimarileri ve cihaz analiz modülü.</div>
+    </div>
+    <div class="tile health" data-target="healthWindow">
+      <div class="tile-icon">🧬</div>
+      <div class="tile-title">Sağlık & Biyoloji</div>
+      <div class="tile-desc">Nöroplastisite ve prefrontal korteks egzersizleri.</div>
+    </div>
+    <div class="tile finance" data-target="financeWindow">
+      <div class="tile-icon">📊</div>
+      <div class="tile-title">Finansal Analiz</div>
+      <div class="tile-desc">Stratejik bütçeleme ve mikro-yatırım simülasyonları.</div>
+    </div>
+  </div>
+
+  <!-- 1. EĞİTİM PENCERESİ -->
+  <div class="window-panel active-education" id="educationWindow">
+    <div class="window-header">
+      <span style="font-weight: bold; font-size: 16px;">📚 Eğitim Modülü</span>
+      <button class="close-btn" data-close="educationWindow">✕ Kapat</button>
+    </div>
+    <div class="progress-container"><div id="strategyBox">🧭 Yükleniyor...</div></div>
+    <div class="progress-container">
+      <label id="progressTitle">📊 İlerleme Durumu: %0</label>
+      <div class="bar"><div class="fill" id="progressBarFill"></div></div>
+    </div>
+    <div class="progress-container" style="background: var(--bg-card); border: 1px solid var(--bg-accent);">
+      <div class="form-group">
+        <label for="hours">Günlük Çalışma Saati</label>
+        <input type="number" id="hours" min="1" max="24" placeholder="Örn: 6" />
+        <div class="error-msg" id="hoursError">Lütfen 1 ile 24 arasında geçerli bir saat girin!</div>
+      </div>
+      <div class="form-group">
+        <label for="subject">Odaklanılacak Ders</label>
+        <select id="subject">
+          <option value="Matematik">Matematik</option>
+          <option value="Türkçe">Türkçe</option>
+          <option value="Fen">Fen</option>
+          <option value="Sosyal">Sosyal</option>
+        </select>
+      </div>
+      <button id="createPlanBtn">Stratejik Plan Oluştur</button>
+    </div>
+    <div class="task-list" id="taskListContainer"></div>
+  </div>
+
+  <!-- 2. TEKNOLOJİ PENCERESİ (YENİ EKİLENDİ - SİSTEMİ KIRMAZ) -->
+  <div class="window-panel active-tech" id="techWindow">
+    <div class="window-header">
+      <span style="font-weight: bold; font-size: 16px;">💻 Teknoloji & Donanım</span>
+      <button class="close-btn" data-close="techWindow">✕ Kapat</button>
+    </div>
+    <p style="opacity: 0.7; font-size: 14px;">F/P Akıllı telefon işlemci mimarileri, GPU darboğaz analizleri ve Poco/Redmi serisi donanım karşılaştırma motoru yakında bu alanda derlenecektir.</p>
+  </div>
+
+  <!-- 3. SAĞLIK PENCERESİ -->
+  <div class="window-panel active-health" id="healthWindow">
+    <div class="window-header">
+      <span style="font-weight: bold; font-size: 16px;">🧬 Sağlık & Biyoloji</span>
+      <button class="close-btn" data-close="healthWindow">✕ Kapat</button>
+    </div>
+    <p style="opacity: 0.7; font-size: 14px;">Prefrontal Korteks (PFC) uyarıcı egzersizler, aktif nöroplastisite takibi ve odaklanma süreölçer mimarisi üzerinde çalışılıyor.</p>
+  </div>
+
+  <!-- 4. FİNANS PENCERESİ -->
+  <div class="window-panel active-finance" id="financeWindow">
+    <div class="window-header">
+      <span style="font-weight: bold; font-size: 16px;">📊 Finansal Analiz</span>
+      <button class="close-btn" data-close="financeWindow">✕ Kapat</button>
+    </div>
+    <p style="opacity: 0.7; font-size: 14px;">Öğrenci mikro-bütçeleme algoritmaları, fon birikim takibi ve tasarruf çarpanı hesaplama araçları tasarlanıyor.</p>
+  </div>
+
+  <div class="toast" id="toastBox"></div>
+
+  <footer>
+    &copy; 2026 ArchDevLab. Framework Execution Engine v6.
+  </footer>
+
+  <script>
+    /**
+     * ARCHDEVLAB CORE FRAMEWORK v6
+     * Handcrafted by Mustafa (The Architect) & AI Peer
+     */
+    const App = (function () {
+      
+      const CONFIG = {
+        VERSION: "6.0.0",
+        STORAGE_PREFIX: "archdev_v6_"
+      };
+
+      // ENCAPSULATED REACTION STATE
+      const State = {
+        tasks: [],
+        activeWindow: null,
+        currentDayKey: null,
+        
+        // Dynamic Date Tracker (Auto-update loop check)
+        updateDayKey: function () {
+          const d = new Date();
+          this.currentDayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+      };
+
+      // DATA PRIVACY & STORAGE PROTECTION
+      const Storage = {
+        isAvailable: function () {
+          try {
+            localStorage.setItem("__t__", "1");
+            localStorage.removeItem("__t__");
+            return true;
+          } catch (e) { return false; }
+        },
+        save: function () {
+          if (!this.isAvailable()) return;
+          try {
+            const packageData = {
+              version: CONFIG.VERSION,
+              payload: State.tasks
+            };
+            localStorage.setItem(`${CONFIG.STORAGE_PREFIX}${State.currentDayKey}`, JSON.stringify(packageData));
+          } catch (err) { UI.showToast("Depolama alanı yazma hatası!", "danger"); }
+        },
+        load: function () {
+          if (!this.isAvailable()) return;
+          State.updateDayKey(); // Gün kontrolünü tazele
+          try {
+            const raw = localStorage.getItem(`${CONFIG.STORAGE_PREFIX}${State.currentDayKey}`);
+            if (!raw) {
+              State.tasks = []; // Yeni güne geçildiyse state'i temizle (Stale State Çözümü)
+              return;
+            }
+            const parsed = JSON.parse(raw);
+            State.tasks = (parsed && parsed.version === CONFIG.VERSION) ? parsed.payload : [];
+          } catch (e) {
+            State.tasks = [];
+          }
+        }
+      };
+
+      // MATHEMATICAL ENGINE
+      const Engine = {
+        calculatePlan: function (hours, subject) {
+          const p1 = Math.floor(hours * 0.3);
+          const p2 = Math.floor(hours * 0.5);
+          const p3 = hours - (p1 + p2); // Precision Remainder Guard
+
+          return [
+            { type: "📖 Temel Kurulum", text: `${subject} Konu Çalışması`, detail: `${p1} saat → Teorik altyapı kurulumu`, done: false },
+            { type: "🧠 Aktif Öğrenme", text: `Nitelikli Soru Çözümü`, detail: `${p2} saat → Pratik uygulama döngüsü`, done: false },
+            { type: "🔁 Kalıcı Öğrenme", text: `Hata Analizi & Geri Besleme`, detail: `${p3} saat → Prefrontal entegrasyon`, done: false }
+          ];
+        },
+        getProgress: function () {
+          if (State.tasks.length === 0) return 0;
+          return Math.round((State.tasks.filter(t => t.done).length / State.tasks.length) * 100);
+        }
+      };
+
+      // TRUE DYNAMIC UI ROUTER (Kırılma Riski Sıfırlandı)
+      const UI = {
+        elements: {},
+        initDOM: function () {
+          this.elements = {
+            hoursInput: document.getElementById("hours"),
+            hoursError: document.getElementById("hoursError"),
+            subjectSelect: document.getElementById("subject"),
+            taskList: document.getElementById("taskListContainer"),
+            strategyBox: document.getElementById("strategyBox"),
+            progressBarFill: document.getElementById("progressBarFill"),
+            progressTitle: document.getElementById("progressTitle"),
+            toastBox: document.getElementById("toastBox"),
+            tilesGrid: document.getElementById("tilesGrid")
+          };
+        },
+        render: function () {
+          const progress = Engine.getProgress();
+          
+          this.elements.progressBarFill.style.width = `${progress}%`;
+          this.elements.progressTitle.textContent = `📊 İlerleme Durumu: %${progress}`;
+          
+          let strategyText = "Döngüyü başlat 🔥 İlk adımı atmak korteksi tetikler.";
+          if (progress > 0 && progress < 50) strategyText = "Süreç aktif 🚀 Derin odaklanmayı bozma.";
+          if (progress >= 50 && progress < 100) strategyText = "Kritik eşik ⚡ Son aşama kalıcı hafıza için en değerli bölümdür.";
+          if (progress === 100) strategyText = "Mükemmel yürütme 🎯 Günlük nöral adaptasyon tamamlandı.";
+          
+          this.elements.strategyBox.innerHTML = `🧭 <b>Günlük Strateji:</b> ${strategyText}`;
+
+          if (State.tasks.length === 0) {
+            this.elements.taskList.innerHTML = `<p style="text-align:center; opacity:0.5; font-size:13px;">Aktif plan bulunamadı. Yukarıdan yeni bir döngü başlatın.</p>`;
+            return;
+          }
+
+          this.elements.taskList.innerHTML = State.tasks.map((task, index) => `
+            <div class="task ${task.done ? 'done' : ''}">
+              <div>
+                <b style="color: var(--color-info);">${task.type}</b><br>
+                <span class="task-title">${task.text}</span><br>
+                <small style="opacity:0.6; font-size:11px;">${task.detail}</small>
+              </div>
+              <button class="toggle-task-btn" data-index="${index}">
+                ${task.done ? 'Geri Al' : 'Tamamla'}
+              </button>
+            </div>
+          `).join('');
+        },
+        showToast: function (msg, type = "info") {
+          const toast = this.elements.toastBox;
+          toast.textContent = msg;
+          toast.style.borderLeftColor = type === "danger" ? "var(--color-danger)" : "var(--color-info)";
+          toast.style.display = "block";
+          setTimeout(() => { toast.style.display = "none"; }, 2500);
+        },
+        // Çözülen Kusursuz Pencere Yönlendiricisi:
+        toggleWindow: function (targetWindowId, show) {
+          const targetWindow = document.getElementById(targetWindowId);
+          if (!targetWindow) return;
+
+          if (show) {
+            this.elements.tilesGrid.style.display = "none";
+            targetWindow.style.display = "block";
+            State.activeWindow = targetWindowId;
+          } else {
+            targetWindow.style.display = "none";
+            this.elements.tilesGrid.style.display = "grid";
+            State.activeWindow = null;
+          }
+        },
+        clearInput: function() {
+          this.elements.hoursInput.value = "";
+          this.elements.hoursError.style.display = "none";
+          this.elements.hoursInput.style.borderColor = "var(--color-accent)";
+        }
+      };
+
+      // EVENT CONTROL MATRIX
+      const Events = {
+        setup: function () {
+          // Dinamik Pencere Açıcılar (Data Attributes Routing)
+          document.querySelectorAll("[data-target]").forEach(tile => {
+            tile.addEventListener("click", function() {
+              const target = this.getAttribute("data-target");
+              UI.toggleWindow(target, true);
+            });
+          });
+
+          // Dinamik Pencere Kapatıcılar
+          document.querySelectorAll("[data-close]").forEach(btn => {
+            btn.addEventListener("click", function() {
+              const target = this.getAttribute("data-close");
+              UI.toggleWindow(target, false);
+            });
+          });
+
+          // Planlama Tetiği
+          document.getElementById("createPlanBtn").addEventListener("click", () => {
+            // Canlı Gün Kontrolü (Sayfa açık kaldıysa bug önleyici)
+            State.updateDayKey();
+
+            const hours = Number(UI.elements.hoursInput.value);
+            const subject = UI.elements.subjectSelect.value;
+
+            if (!hours || hours < 1 || hours > 24) {
+              UI.elements.hoursError.style.display = "block";
+              UI.elements.hoursInput.style.borderColor = "var(--color-danger)";
+              return;
+            }
+
+            if (State.tasks.length > 0 && !confirm("Mevcut aktif planın üzerine yazılacaktır. Onaylıyor musunuz?")) {
+              return;
+            }
+
+            State.tasks = Engine.calculatePlan(hours, subject);
+            Storage.save();
+            UI.render();
+            UI.clearInput(); // UX İyileştirmesi: Form temizleme eklendi
+            UI.showToast("Stratejik döngü hafızaya işlendi.", "info");
+          });
+
+          // Task delegation
+          UI.elements.taskList.addEventListener("click", (e) => {
+            if (e.target.classList.contains("toggle-task-btn")) {
+              const index = e.target.getAttribute("data-index");
+              State.tasks[index].done = !State.tasks[index].done;
+              Storage.save();
+              UI.render();
+              if(State.tasks[index].done) UI.showToast("Görev tamamlandı!", "info");
+            }
+          });
+        }
+      };
+
+      return {
+        boot: function () {
+          UI.initDOM();
+          Storage.load();
+          Events.setup();
+          UI.render();
+          console.log(`ArchDevLab Framework v${CONFIG.VERSION} Active.`);
+        }
+      };
+
+    })();
+
+    document.addEventListener("DOMContentLoaded", () => App.boot());
+  </script>
+</body>
+  </html>
+  
